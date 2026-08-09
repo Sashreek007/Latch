@@ -1514,9 +1514,9 @@ I4: at every prefix of the log: reserved + spent ≤ envelope.budgetUsd</pre>
 <script>
 /* scrollspy */
 var navLinks=[].slice.call(document.querySelectorAll('nav.side a'));
-var secs=navLinks.map(function(a){return document.querySelector(a.getAttribute('href'));});
-var spy=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var id='#'+e.target.id;navLinks.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')===id);});}});},{rootMargin:'-8% 0px -82% 0px'});
-secs.forEach(function(s){if(s)spy.observe(s);});
+var secs=navLinks.map((a)=> document.querySelector(a.getAttribute('href')));
+var spy=new IntersectionObserver((es)=> {es.forEach((e)=> {if(e.isIntersecting){var id='#'+e.target.id;navLinks.forEach((a)=> {a.classList.toggle('active',a.getAttribute('href')===id);});}});},{rootMargin:'-8% 0px -82% 0px'});
+secs.forEach((s)=> {if(s)spy.observe(s);});
 
 /* ===== interactive step loop ===== */
 var STAGES=[
@@ -1547,10 +1547,10 @@ var STAGES=[
 ];
 var pipe=document.getElementById('pipe');
 if(pipe){
- STAGES.forEach(function(s,i){var el=document.createElement('div');el.className='pstage';el.setAttribute('data-kind',s.kind);el.setAttribute('tabindex','0');el.setAttribute('role','button');
+ STAGES.forEach((s,i)=> {var el=document.createElement('div');el.className='pstage';el.setAttribute('data-kind',s.kind);el.setAttribute('tabindex','0');el.setAttribute('role','button');
    el.innerHTML='<div class="n">'+s.n+'</div><div class="t">'+s.t+'</div><div class="dotbar"></div>';
-   el.onclick=function(){selStage(i);};
-   el.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selStage(i);}};
+   el.onclick=()=> {selStage(i);};
+   el.onkeydown=(ev)=> {if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selStage(i);}};
    pipe.appendChild(el);});
  selStage(4);
 }
@@ -1624,9 +1624,9 @@ var EX=[
 var exI=0, exStep=0;
 var exTabs=document.getElementById('exTabs');
 if(exTabs){
- EX.forEach(function(e,i){var t=document.createElement('div');t.className='tab';t.textContent=e.label;t.setAttribute('tabindex','0');t.setAttribute('role','button');
-   t.onclick=function(){exI=i;exStep=0;renderEx();};
-   t.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();exI=i;exStep=0;renderEx();}};
+ EX.forEach((e,i)=> {var t=document.createElement('div');t.className='tab';t.textContent=e.label;t.setAttribute('tabindex','0');t.setAttribute('role','button');
+   t.onclick=()=> {exI=i;exStep=0;renderEx();};
+   t.onkeydown=(ev)=> {if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();exI=i;exStep=0;renderEx();}};
    exTabs.appendChild(t);});
 }
 function renderEx(){
@@ -1636,7 +1636,7 @@ function renderEx(){
  document.getElementById('exSym').innerHTML=e.sym;
  var b=document.getElementById('exBadge');b.textContent=e.badge;b.style.color=e.badgeColor;b.style.borderColor=e.badgeColor;
  var minis=document.getElementById('exMinis');minis.innerHTML='';
- e.minis.forEach(function(nm,k){var m=document.createElement('div');
+ e.minis.forEach((nm,k)=> {var m=document.createElement('div');
    var frac=(k+1)/e.minis.length, done=exStep/total;
    m.className='exmini'+(done>=frac-0.001?' on':'');
    m.innerHTML='<div class="mn">'+(k+1)+'</div><div class="mt">'+nm+'</div>';minis.appendChild(m);});
@@ -1656,7 +1656,7 @@ function renderEx(){
  sb.textContent=exStep>=total?'Proven ✓':(exStep===0?'Step ▶':'Next ▶');
 }
 var exStepBtn=document.getElementById('exStep');
-if(exStepBtn){exStepBtn.onclick=function(){if(exStep<EX[exI].steps.length){exStep++;renderEx();}};
- document.getElementById('exReset').onclick=function(){exStep=0;renderEx();};
+if(exStepBtn){exStepBtn.onclick=()=> {if(exStep<EX[exI].steps.length){exStep++;renderEx();}};
+ document.getElementById('exReset').onclick=()=> {exStep=0;renderEx();};
  renderEx();}
 </script>

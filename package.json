@@ -9,9 +9,12 @@
   "scripts": {
     "typecheck": "pnpm -r --parallel exec tsc --noEmit",
     "test": "vitest run",
-    "migrate": "node --env-file-if-exists=.env node_modules/node-pg-migrate/bin/node-pg-migrate.js up"
+    "migrate": "node --env-file-if-exists=.env node_modules/node-pg-migrate/bin/node-pg-migrate.js up",
+    "lint": "biome check .",
+    "format": "biome check --write ."
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.7",
     "@types/node": "^26.2.0",
     "node-pg-migrate": "^9.0.0",
     "pg": "^8.23.0",

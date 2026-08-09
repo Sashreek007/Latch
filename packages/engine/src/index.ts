@@ -4,4 +4,3 @@
  * would be misread by a newer one.
  */
 export const ENGINE_FORMAT_VERSION = 1;
-

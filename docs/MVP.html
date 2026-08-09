@@ -1096,7 +1096,7 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
 
 <script>
 var navLinks=[].slice.call(document.querySelectorAll('nav.side a[href^="#"]'));
-var secs=navLinks.map(function(a){return document.querySelector(a.getAttribute('href'));});
-var spy=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var id='#'+e.target.id;navLinks.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')===id);});}});},{rootMargin:'-8% 0px -82% 0px'});
-secs.forEach(function(s){if(s)spy.observe(s);});
+var secs=navLinks.map((a)=> document.querySelector(a.getAttribute('href')));
+var spy=new IntersectionObserver((es)=> {es.forEach((e)=> {if(e.isIntersecting){var id='#'+e.target.id;navLinks.forEach((a)=> {a.classList.toggle('active',a.getAttribute('href')===id);});}});},{rootMargin:'-8% 0px -82% 0px'});
+secs.forEach((s)=> {if(s)spy.observe(s);});
 </script>
