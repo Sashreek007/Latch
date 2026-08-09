@@ -8,7 +8,9 @@ import {
 } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
 
-const GITHUB_REPOSITORY = "Sashreek007/Latch";
+// GitHub's OIDC subject embeds immutable numeric IDs beside the names, so a
+// renamed — or re-registered — repository cannot inherit this trust.
+const GITHUB_REPOSITORY = "Sashreek007@102474101/Latch@1328325219";
 
 /**
  * Lets GitHub Actions obtain short-lived AWS credentials by proving which
