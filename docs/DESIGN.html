@@ -1,0 +1,1662 @@
+<title>Latch — Design Doc</title>
+<style>
+/* Ledger theme — durable facts, ink on paper. Colors encode MEANING:
+   blue=durable engine · plum=agent/model · ochre=side effect/intent · green=invariant/verified · brick=crash/fault */
+:root{
+  --bg:#f2efe6; --bg-2:#eae6d9; --panel:#faf8f1; --panel-2:#efebde;
+  --border:#d9d3c0; --border-2:#b3ac93;
+  --ink:#26271f; --ink-2:#52534a; --ink-3:#84856f;
+  --amber:#a3641a; --amber-soft:#f4e7d0;
+  --cyan:#2d5f9a; --cyan-soft:#e3eaf3;
+  --violet:#86468b; --violet-soft:#efe3f0;
+  --green:#1d6b50; --green-soft:#dfeee4;
+  --red:#b23a2f; --red-soft:#f4ded9;
+  --must:#1d6b50;  --must-bg:#dfeee4;
+  --should:#2d5f9a;--should-bg:#e3eaf3;
+  --could:#a3641a; --could-bg:#f4e7d0;
+  --wont:#84856f;  --wont-bg:#eae6d9;
+  --accent:#1d6b50; --accent-bg:#dfeee4;
+  --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  --serif:'Charter','Iowan Old Style',Palatino,Georgia,serif;
+  --radius:3px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#191b13; --bg-2:#14160f; --panel:#20231a; --panel-2:#262a1f;
+    --border:#3b4030; --border-2:#575d47;
+    --ink:#eeeadb; --ink-2:#b8b5a0; --ink-3:#8a8972;
+    --amber:#dda155; --amber-soft:#3d2c12;
+    --cyan:#85aede; --cyan-soft:#223145;
+    --violet:#cf97d4; --violet-soft:#3a2440;
+    --green:#62c093; --green-soft:#1d3628;
+    --red:#e58275; --red-soft:#43221c;
+    --must:#62c093;  --must-bg:#1d3628;
+    --should:#85aede;--should-bg:#223145;
+    --could:#dda155; --could-bg:#3d2c12;
+    --wont:#8a8972;  --wont-bg:#262a1f;
+    --accent:#62c093; --accent-bg:#1d3628;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#191b13; --bg-2:#14160f; --panel:#20231a; --panel-2:#262a1f;
+  --border:#3b4030; --border-2:#575d47;
+  --ink:#eeeadb; --ink-2:#b8b5a0; --ink-3:#8a8972;
+  --amber:#dda155; --amber-soft:#3d2c12;
+  --cyan:#85aede; --cyan-soft:#223145;
+  --violet:#cf97d4; --violet-soft:#3a2440;
+  --green:#62c093; --green-soft:#1d3628;
+  --red:#e58275; --red-soft:#43221c;
+  --must:#62c093;  --must-bg:#1d3628;
+  --should:#85aede;--should-bg:#223145;
+  --could:#dda155; --could-bg:#3d2c12;
+  --wont:#8a8972;  --wont-bg:#262a1f;
+  --accent:#62c093; --accent-bg:#1d3628;
+}
+:root[data-theme="light"]{
+  --bg:#f2efe6; --bg-2:#eae6d9; --panel:#faf8f1; --panel-2:#efebde;
+  --border:#d9d3c0; --border-2:#b3ac93;
+  --ink:#26271f; --ink-2:#52534a; --ink-3:#84856f;
+  --amber:#a3641a; --amber-soft:#f4e7d0;
+  --cyan:#2d5f9a; --cyan-soft:#e3eaf3;
+  --violet:#86468b; --violet-soft:#efe3f0;
+  --green:#1d6b50; --green-soft:#dfeee4;
+  --red:#b23a2f; --red-soft:#f4ded9;
+  --must:#1d6b50;  --must-bg:#dfeee4;
+  --should:#2d5f9a;--should-bg:#e3eaf3;
+  --could:#a3641a; --could-bg:#f4e7d0;
+  --wont:#84856f;  --wont-bg:#eae6d9;
+  --accent:#1d6b50; --accent-bg:#dfeee4;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);line-height:1.7;font-size:16.5px;-webkit-font-smoothing:antialiased}
+a{color:var(--cyan);text-decoration:none} a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible,.pstage:focus-visible,.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+b{color:var(--ink)}
+code{font-family:var(--mono);font-size:.8em;background:var(--cyan-soft);color:var(--cyan);padding:.08em .4em;border-radius:2px}
+h1,h2,h3{line-height:1.25;letter-spacing:0;text-wrap:balance}
+p{color:var(--ink-2);margin:.6rem 0}
+.muted{color:var(--ink-3)} .note{color:var(--ink-3);font-size:.9rem;font-style:italic}
+.wrap{display:grid;grid-template-columns:252px 1fr;max-width:1240px;margin:0 auto;min-height:100vh}
+nav.side{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:26px 16px;border-right:1px solid var(--border-2);background:var(--bg-2);font-family:var(--sans)}
+nav.side .brand{display:flex;align-items:center;gap:9px;margin-bottom:3px}
+nav.side .brand .dot{width:11px;height:11px;border-radius:2px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+nav.side .brand b{font-size:1.05rem;font-family:var(--serif)}
+nav.side .ph{font-size:.68rem;color:var(--ink-3);font-family:var(--mono);margin:0 0 16px 20px;text-transform:uppercase;letter-spacing:.08em}
+nav.side a{display:block;color:var(--ink-2);font-size:.83rem;padding:5px 10px;border-radius:2px;border-left:2px solid transparent}
+nav.side a:hover{color:var(--ink);background:var(--panel);text-decoration:none}
+nav.side a.active{color:var(--ink);border-left-color:var(--accent);background:var(--panel)}
+nav.side a.sub{padding-left:22px;font-size:.78rem;color:var(--ink-3)}
+nav.side .grp{font-size:.62rem;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-3);margin:16px 0 5px 10px;font-family:var(--mono)}
+main{padding:40px 56px 120px;max-width:920px;min-width:0}
+section{scroll-margin-top:20px}
+header.doc{border-bottom:4px double var(--border-2);padding-bottom:1.3rem;margin-bottom:1.4rem}
+header.doc h1{font-size:2.15rem;margin:0 0 .3rem;font-weight:700}
+header.doc h1 .dot{color:var(--accent)}
+header.doc .desc{color:var(--ink-2);margin:0;max-width:66ch}
+.legend{display:flex;gap:15px;flex-wrap:wrap;font-size:.74rem;color:var(--ink-3);margin-top:12px;font-family:var(--sans)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+h2.section{font-size:1.5rem;margin:2.8rem 0 .4rem;font-weight:700}
+h2.section .num{color:var(--accent);font-family:var(--mono);font-size:.85em;font-variant-numeric:tabular-nums}
+h3{font-size:1.1rem;margin:1.7rem 0 .5rem;font-weight:700}
+.roadmap{list-style:none;padding:0;margin:1rem 0 0;display:grid;gap:.5rem;font-family:var(--sans)}
+.roadmap li{display:flex;align-items:baseline;gap:.7rem;padding:.6rem .9rem;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius)}
+.roadmap .st{font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.18em .6em;border-radius:2px;white-space:nowrap;font-family:var(--mono);border:1px solid currentColor}
+.roadmap .st.now{background:var(--should-bg);color:var(--should)}
+.roadmap .st.next{background:var(--wont-bg);color:var(--wont)}
+.roadmap .st.done{background:var(--must-bg);color:var(--must)}
+.roadmap .rl{color:var(--ink-2);font-size:.9rem}
+.roadmap li.active{border-color:var(--should)} .roadmap li.active .rl{color:var(--ink);font-weight:500}
+.concept{background:var(--panel);border-left:4px double var(--accent);border-radius:0;padding:.8rem 1.1rem;margin:1.1rem 0}
+.concept .lab{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:.25rem;font-family:var(--mono)}
+.concept p{margin:.15rem 0;font-size:.95rem}
+.highlight{background:var(--could-bg);border-left:4px double var(--could);border-radius:0;padding:.8rem 1.1rem;margin:1.1rem 0}
+.highlight .lab{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--could);display:block;margin-bottom:.25rem;font-family:var(--mono)}
+.honest{background:var(--red-soft);border-left:4px double var(--red);border-radius:0;padding:.8rem 1.1rem;margin:1.1rem 0}
+.honest .lab{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);display:block;margin-bottom:.25rem;font-family:var(--mono)}
+.honest p{margin:.15rem 0;font-size:.95rem}
+.tier{border:1px solid var(--border-2);border-radius:var(--radius);overflow:hidden;margin:.9rem 0;background:var(--panel)}
+.tier>.head{display:flex;align-items:center;gap:.6rem;padding:.6rem .9rem;font-weight:700;color:var(--ink);border-bottom:1px solid var(--border)}
+.tier .pill{font-size:.66rem;font-weight:700;letter-spacing:.08em;padding:.18em .6em;border-radius:2px;font-family:var(--mono);border:1px solid currentColor}
+.tier .sub{color:var(--ink-2);font-weight:400;font-size:.88rem;font-style:italic}
+.tier ol{margin:0;padding:.4rem 1.2rem .9rem 2.3rem;color:var(--ink-2)}
+.tier li{margin:.35rem 0}
+.tier.must{border-color:var(--must)} .tier.must .pill{background:var(--must-bg);color:var(--must)} .tier.must>.head{background:var(--must-bg)}
+.tier.should{border-color:var(--should)} .tier.should .pill{background:var(--should-bg);color:var(--should)} .tier.should>.head{background:var(--should-bg)}
+.tier.could{border-color:var(--could)} .tier.could .pill{background:var(--could-bg);color:var(--could)} .tier.could>.head{background:var(--could-bg)}
+.tier.wont{border-color:var(--border-2)} .tier.wont .pill{background:var(--wont-bg);color:var(--wont)} .tier.wont>.head{background:var(--wont-bg)}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.86rem;border:1px solid var(--border-2);border-top:2px solid var(--ink-3);font-family:var(--sans)}
+.tblwrap{overflow-x:auto}
+th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px dotted var(--border-2);vertical-align:top}
+thead th{background:var(--panel-2);color:var(--ink);font-weight:600;font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;font-family:var(--mono);border-bottom:1px solid var(--border-2)}
+td{color:var(--ink-2)} tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--panel)}
+td.force{color:var(--cyan)} .slo{font-family:var(--mono);font-size:.85em;color:var(--amber)}
+td .num,.tabnum{font-variant-numeric:tabular-nums}
+.decision{border:1px solid var(--border-2);border-radius:var(--radius);margin:1.1rem 0;overflow:hidden;background:var(--panel)}
+.decision .dh{background:var(--panel-2);border-bottom:1px solid var(--border);padding:.6rem .95rem;font-weight:700;color:var(--ink);display:flex;gap:.6rem;align-items:center}
+.decision .dh .tag{font-size:.64rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-family:var(--mono);border:1px solid var(--accent);border-radius:2px;padding:.14em .5em;white-space:nowrap}
+.decision .body{padding:.5rem .95rem 1rem}
+.decision .opt{margin:.55rem 0;padding-left:1.5rem;position:relative;font-size:.93rem;color:var(--ink-2)}
+.decision .opt::before{content:"○";position:absolute;left:0;color:var(--ink-3)}
+.decision .opt.win::before{content:"●";color:var(--must)}
+.decision .opt .name{font-weight:700;color:var(--ink)}
+.decision .opt.win .name{color:var(--must)}
+.decision .why{margin-top:.7rem;padding:.6rem .85rem;background:var(--must-bg);border-left:3px solid var(--must);border-radius:0;font-size:.92rem;color:var(--ink-2)}
+.decision .why b{color:var(--must)}
+.locked{background:var(--panel);border:3px double var(--green);border-radius:2px;padding:.9rem 1.1rem;margin:1.2rem 0}
+.locked h3{margin:.2rem 0 .4rem;color:var(--green)} .locked ul{margin:.3rem 0;padding-left:1.2rem;color:var(--ink-2)} .locked li{margin:.3rem 0}
+.locked p{font-size:.95rem}
+.gate{margin-top:2.4rem;padding:1rem 1.2rem;border:3px double var(--accent);border-radius:2px;background:var(--accent-bg)}
+.gate b{color:var(--accent)}
+pre{background:var(--panel);border:1px solid var(--border-2);border-radius:2px;padding:.85rem 1rem;overflow-x:auto;font-family:var(--mono);font-size:.78rem;line-height:1.55;color:var(--ink-2)}
+pre b{color:var(--cyan);font-weight:600}
+.diagram{border:1px solid var(--border);background:var(--panel);border-radius:2px;padding:12px 8px;margin:14px 0;overflow-x:auto}
+.pipe{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px;font-family:var(--sans)}
+.pstage{flex:1;min-width:86px;cursor:pointer;border:1px solid var(--border-2);background:var(--panel);border-radius:2px;padding:10px 8px;text-align:center;transition:.15s}
+.pstage:hover{border-color:var(--ink-3);transform:translateY(-2px)}
+.pstage.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pstage .n{font-family:var(--mono);font-size:.66rem;color:var(--ink-3)}
+.pstage .t{font-weight:600;font-size:.8rem;margin-top:2px;color:var(--ink)}
+.pstage .dotbar{height:3px;border-radius:0;margin-top:8px;background:var(--border)}
+.pstage[data-kind=det] .dotbar{background:var(--cyan)}
+.pstage[data-kind=ai] .dotbar{background:var(--violet)}
+.pstage[data-kind=eff] .dotbar{background:var(--amber)}
+.pstage[data-kind=out] .dotbar{background:var(--green)}
+#stageDetail{border:1px solid var(--border-2);background:var(--panel);border-radius:2px;padding:16px 18px;margin-top:8px;font-family:var(--sans)}
+#stageDetail .row{display:grid;grid-template-columns:110px 1fr;gap:8px;padding:6px 0;border-top:1px dotted var(--border-2);font-size:.88rem}
+#stageDetail .row:first-of-type{border-top:none}
+#stageDetail .row .k{color:var(--ink-3);font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;padding-top:2px}
+#stageDetail .row .v{color:var(--ink-2)} #stageDetail .row .v b{color:var(--ink)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;font-family:var(--sans)}
+.tab{cursor:pointer;border:1px solid var(--border-2);background:var(--panel);border-radius:2px;padding:7px 14px;font-size:.84rem;color:var(--ink-2);font-weight:500}
+.tab:hover{color:var(--ink)} .tab.sel{color:var(--accent);border-color:var(--accent);background:var(--accent-bg);font-weight:600}
+.exwrap{border:1px solid var(--border-2);border-radius:2px;background:var(--panel);padding:16px 18px;font-family:var(--sans)}
+.exhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.exhead .sym{font-size:.9rem;color:var(--ink-2)} .exhead .sym b{color:var(--cyan);font-family:var(--mono)}
+.exbadge{font-family:var(--mono);font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:.28em .6em;border-radius:2px;border:1px solid var(--border-2);background:var(--panel-2)}
+.exminis{display:flex;gap:6px;margin:14px 0 10px;flex-wrap:wrap}
+.exmini{flex:1;min-width:60px;border:1px solid var(--border);border-radius:2px;padding:8px 6px;text-align:center;opacity:.4;transition:.2s}
+.exmini.on{opacity:1;border-color:var(--accent)}
+.exmini .mn{font-family:var(--mono);font-size:.62rem;color:var(--ink-3)} .exmini .mt{font-size:.72rem;font-weight:600;margin-top:2px;color:var(--ink)}
+.evlog{min-height:84px;display:flex;flex-direction:column;gap:8px;margin:6px 0 12px}
+.evrow{border:1px solid var(--border);border-left:3px solid var(--cyan);background:var(--panel-2);border-radius:2px;padding:9px 12px;font-size:.85rem;animation:fade .3s ease;color:var(--ink-2)}
+.evrow.crash{border-left-color:var(--red)}
+.evrow.eff{border-left-color:var(--amber)}
+.evrow.ai{border-left-color:var(--violet)}
+.evrow .st{font-family:var(--mono);font-size:.64rem;color:var(--cyan);text-transform:uppercase;letter-spacing:.08em}
+.evrow.crash .st{color:var(--red)} .evrow.eff .st{color:var(--amber)} .evrow.ai .st{color:var(--violet)}
+.evrow .sig{font-family:var(--mono);font-size:.72rem;color:var(--amber)}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+.diag{border:3px double var(--green);background:var(--green-soft);border-radius:2px;padding:14px 16px;animation:fade .3s ease}
+.diag .h{color:var(--green);font-weight:700;font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;display:inline-block;border:1.5px solid var(--green);border-radius:2px;padding:.2em .7em;transform:rotate(-1.2deg)}
+.diag .cites{margin-top:8px;font-family:var(--mono);font-size:.7rem;color:var(--ink-3)} .diag .cites b{color:var(--green)}
+.exctrl{display:flex;gap:10px;align-items:center;margin-top:14px}
+.btn{cursor:pointer;border:1px solid var(--border-2);background:var(--panel-2);color:var(--ink);border-radius:2px;padding:8px 16px;font-size:.86rem;font-weight:600;font-family:var(--sans)}
+.btn.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.btn:hover{filter:brightness(1.06)} .btn:disabled{opacity:.4;cursor:not-allowed}
+.contrast{font-size:.84rem;color:var(--ink-3);margin-top:12px;border-top:1px dotted var(--border-2);padding-top:10px} .contrast b{color:var(--ink-2)}
+hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
+@media(max-width:920px){.wrap{grid-template-columns:1fr}nav.side{display:none}main{padding:26px 18px 80px}}
+</style>
+
+<div class="wrap">
+
+<nav class="side">
+  <div class="brand"><span class="dot"></span><b>Latch</b></div>
+  <div class="ph">design doc · phases 1–3</div>
+  <a href="#roadmap">Roadmap</a>
+  <div class="grp">Phase 1 · system design</div>
+  <a href="#orient">0 · Orientation</a>
+  <a class="sub" href="#ctx">— system context</a>
+  <a class="sub" href="#life">— one workflow's journey</a>
+  <a href="#reqs">1 · Requirements</a>
+  <a class="sub" href="#functional">— functional (MoSCoW)</a>
+  <a class="sub" href="#nonfunctional">— invariants &amp; SLOs</a>
+  <a class="sub" href="#decisions1">— decisions 1–3</a>
+  <a href="#capacity">2 · Capacity &amp; cost</a>
+  <a class="sub" href="#scaling">— scaling tiers</a>
+  <a class="sub" href="#takeover">— latency &amp; takeover budget</a>
+  <a class="sub" href="#decisions2">— decisions 4–5</a>
+  <a href="#arch">3 · Architecture</a>
+  <a class="sub" href="#components">— components &amp; ports</a>
+  <a class="sub" href="#steploop">— the step loop</a>
+  <a class="sub" href="#examples">— worked examples</a>
+  <a class="sub" href="#decisions3">— decisions 6–9</a>
+  <div class="grp">Phase 2 · deep dives</div>
+  <a href="#eventlog">4 · Event log &amp; state</a>
+  <a href="#leasing">5 · Queue &amp; leases</a>
+  <a href="#exactly">6 · Effectively-once tools</a>
+  <a href="#runtime">7 · Agent runtime</a>
+  <a href="#control">8 · HITL &amp; control plane</a>
+  <a href="#harness">9 · Verification harness</a>
+  <div class="grp">Phase 3 · build plan</div>
+  <a href="#plan">10 · Incremental build plan</a>
+  <a class="sub" href="#chunks">— the chunks</a>
+  <a class="sub" href="#mvp">— the MVP cut</a>
+</nav>
+
+<main>
+
+  <header class="doc">
+    <h1>Latch <span class="dot">·</span> Design Doc</h1>
+    <p class="desc">A durable execution engine for AI agent workflows — a deployable service plus a TypeScript SDK.
+      Temporal-shaped durability, but the path is chosen by a model at runtime: every model decision is recorded as a
+      durable fact and resumed from, never replayed. Correctness is proven by invariant verification across thousands
+      of seeded fault schedules. Built design-first, one gated chunk at a time.</p>
+    <div class="legend">
+      <span><i style="background:var(--cyan)"></i> durable engine</span>
+      <span><i style="background:var(--violet)"></i> agent / model decision</span>
+      <span><i style="background:var(--amber)"></i> side effect / intent</span>
+      <span><i style="background:var(--green)"></i> invariant / verified</span>
+      <span><i style="background:var(--red)"></i> crash / injected fault</span>
+    </div>
+  </header>
+
+  <!-- ROADMAP -->
+  <section id="roadmap">
+    <h3>Design roadmap</h3>
+    <p class="note">We build the doc — and the system — one gated step at a time. You confirm a step before the next opens.</p>
+    <ol class="roadmap">
+      <li><span class="st done">done</span><span class="rl">Scope &amp; positioning — record-don't-replay, the Temporal test, effectively-once phrasing, Postgres-only correctness, incremental vertical slices</span></li>
+      <li class="active"><span class="st now">now</span><span class="rl">Phase 1 · §0 Orientation · §1 Requirements · §2 Capacity &amp; cost · §3 High-level architecture — <b>drafted, pending your review</b></span></li>
+      <li><span class="st now">now</span><span class="rl">Phase 2 · Deep dives — §4 event log · §5 leases · §6 effectively-once · §7 agent runtime · §8 control plane · §9 harness — <b>drafted, pending your review</b></span></li>
+      <li><span class="st now">now</span><span class="rl">Phase 3 · Incremental build plan (§10, chunks C0–C20 + drop ladder + <b>MVP cut M0–M15</b>) — <b>drafted, pending your review</b></span></li>
+      <li><span class="st next">later</span><span class="rl">Phase 4 · Implementation — begins at chunk C0 after the gates close</span></li>
+    </ol>
+  </section>
+
+  <!-- SECTION 0 -->
+  <h2 class="section" id="orient"><span class="num">0.</span> Orientation — the shape before the detail</h2>
+  <p class="note">Two pictures anchor everything below: who Latch talks to, and what one workflow's journey looks like — including the two journeys that matter most, the crash and the human approval. §3 formalises them.</p>
+
+  <h3 id="ctx">What it is — system context</h3>
+  <p>Latch sits between an application that <em>starts</em> workflows and the model + tools that <em>execute</em> them.
+    The entire correctness story lives inside one box: <b>Postgres is the single transactional source of truth</b> —
+    queue, state, event log, intents, leases, approvals all commit together. Redis exists, but only for advisory
+    concerns (rate limits, backpressure); no invariant ever depends on it.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 960 480" width="100%" style="font-family:var(--sans);display:block" role="img"
+         aria-label="System context: an app uses the SDK to call the Latch API, which writes to Postgres in one transaction. Workers lease work from Postgres, run the agent runtime which calls a model endpoint and side-effecting tools through the intent layer. A dashboard serves the human approver. Redis is advisory only.">
+      <defs>
+        <marker id="cA" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="var(--amber)"/></marker>
+        <marker id="cC" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="var(--cyan)"/></marker>
+        <marker id="cV" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="var(--violet)"/></marker>
+        <marker id="cG" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="var(--green)"/></marker>
+      </defs>
+      <rect x="180" y="14" width="500" height="452" rx="16" fill="none" stroke="var(--cyan)" stroke-dasharray="7 7" opacity=".55"/>
+      <text x="196" y="36" fill="var(--cyan)" font-size="11" letter-spacing="1.1" style="font-family:var(--mono)">LATCH · CORRECTNESS NEVER LEAVES POSTGRES</text>
+      <!-- left: clients -->
+      <rect x="20" y="70" width="140" height="62" rx="10" fill="var(--panel-2)" stroke="var(--border)"/>
+      <text x="90" y="96" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="600">Your app</text>
+      <text x="90" y="114" text-anchor="middle" fill="var(--ink-3)" font-size="10.5">TypeScript SDK</text>
+      <rect x="20" y="330" width="140" height="62" rx="10" fill="var(--green-soft)" stroke="var(--green)"/>
+      <text x="90" y="356" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="600">Dashboard</text>
+      <text x="90" y="374" text-anchor="middle" fill="var(--ink-3)" font-size="10.5">traces · costs · approvals</text>
+      <!-- api -->
+      <rect x="210" y="66" width="180" height="70" rx="10" fill="var(--panel-2)" stroke="var(--border-2)"/>
+      <text x="300" y="94" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="600">API server</text>
+      <text x="300" y="112" text-anchor="middle" fill="var(--ink-3)" font-size="10.5" style="font-family:var(--mono)">start · status · cancel · approve · list</text>
+      <!-- postgres -->
+      <rect x="210" y="180" width="180" height="150" rx="12" fill="var(--cyan-soft)" stroke="var(--cyan)" stroke-width="1.5"/>
+      <text x="300" y="208" text-anchor="middle" fill="var(--ink)" font-size="15" font-weight="800" style="font-family:var(--mono)">POSTGRES</text>
+      <text x="300" y="228" text-anchor="middle" fill="var(--ink-3)" font-size="10">the single source of truth</text>
+      <text x="300" y="252" text-anchor="middle" fill="var(--ink-2)" font-size="10.5" style="font-family:var(--mono)">workflows · event log</text>
+      <text x="300" y="270" text-anchor="middle" fill="var(--ink-2)" font-size="10.5" style="font-family:var(--mono)">queue (SKIP LOCKED) · leases</text>
+      <text x="300" y="288" text-anchor="middle" fill="var(--ink-2)" font-size="10.5" style="font-family:var(--mono)">intents · effects · approvals</text>
+      <text x="300" y="306" text-anchor="middle" fill="var(--ink-2)" font-size="10.5" style="font-family:var(--mono)">dead letters</text>
+      <!-- workers -->
+      <rect x="450" y="180" width="210" height="150" rx="12" fill="var(--panel)" stroke="var(--border-2)"/>
+      <text x="555" y="205" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="700">Worker pool</text>
+      <text x="555" y="222" text-anchor="middle" fill="var(--ink-3)" font-size="10">claim → one step → checkpoint → release</text>
+      <rect x="466" y="236" width="178" height="38" rx="8" fill="var(--violet-soft)" stroke="var(--violet)"/>
+      <text x="555" y="252" text-anchor="middle" fill="var(--violet)" font-size="11" font-weight="600">agent runtime</text>
+      <text x="555" y="267" text-anchor="middle" fill="var(--ink-3)" font-size="9.5">decision recording · envelope · routing</text>
+      <rect x="466" y="282" width="178" height="38" rx="8" fill="var(--amber-soft)" stroke="var(--amber)"/>
+      <text x="555" y="298" text-anchor="middle" fill="var(--amber)" font-size="11" font-weight="600">tool registry (scoped)</text>
+      <text x="555" y="313" text-anchor="middle" fill="var(--ink-3)" font-size="9.5">intent + idempotency key before any effect</text>
+      <!-- redis -->
+      <rect x="450" y="386" width="210" height="56" rx="10" fill="none" stroke="var(--border-2)" stroke-dasharray="5 4"/>
+      <text x="555" y="410" text-anchor="middle" fill="var(--ink-2)" font-size="12" font-weight="600">Redis — advisory only</text>
+      <text x="555" y="428" text-anchor="middle" fill="var(--ink-3)" font-size="10">rate limits · provider backpressure</text>
+      <!-- right: model + tools -->
+      <rect x="740" y="120" width="200" height="76" rx="12" fill="var(--violet-soft)" stroke="var(--violet)"/>
+      <text x="840" y="148" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="700">Model endpoint</text>
+      <text x="840" y="166" text-anchor="middle" fill="var(--ink-2)" font-size="10.5">OpenAI API · routed by tier</text>
+      <text x="840" y="182" text-anchor="middle" fill="var(--violet)" font-size="10" style="font-family:var(--mono)">↞ every reply becomes a fact</text>
+      <rect x="740" y="240" width="200" height="76" rx="12" fill="var(--amber-soft)" stroke="var(--amber)"/>
+      <text x="840" y="268" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="700">Side-effecting tools</text>
+      <text x="840" y="286" text-anchor="middle" fill="var(--ink-2)" font-size="10.5">email · refunds · CRM · ERP</text>
+      <text x="840" y="302" text-anchor="middle" fill="var(--amber)" font-size="10" style="font-family:var(--mono)">↞ calls carry the idempotency key</text>
+      <!-- arrows -->
+      <line x1="160" y1="101" x2="207" y2="101" stroke="var(--cyan)" stroke-width="1.6" marker-end="url(#cC)"/>
+      <text x="183" y="92" text-anchor="middle" font-size="10" fill="var(--cyan)" style="font-family:var(--mono)">start</text>
+      <line x1="300" y1="136" x2="300" y2="177" stroke="var(--cyan)" stroke-width="1.6" marker-end="url(#cC)"/>
+      <text x="312" y="160" font-size="9.5" fill="var(--cyan)" style="font-family:var(--mono)">one txn</text>
+      <line x1="390" y1="255" x2="447" y2="255" stroke="var(--cyan)" stroke-width="1.6" marker-start="url(#cC)" marker-end="url(#cC)"/>
+      <text x="419" y="245" text-anchor="middle" font-size="9.5" fill="var(--cyan)" style="font-family:var(--mono)">lease · append</text>
+      <line x1="660" y1="255" x2="737" y2="158" stroke="var(--violet)" stroke-width="1.5" marker-end="url(#cV)"/>
+      <line x1="660" y1="290" x2="737" y2="278" stroke="var(--amber)" stroke-width="1.5" marker-end="url(#cA)"/>
+      <line x1="160" y1="361" x2="300" y2="361" stroke="var(--green)" stroke-width="1.5" marker-end="url(#cG)"/>
+      <text x="228" y="352" text-anchor="middle" font-size="9.5" fill="var(--green)" style="font-family:var(--mono)">approve / read traces</text>
+      <line x1="300" y1="361" x2="300" y2="333" stroke="var(--green)" stroke-width="1.5" marker-end="url(#cG)"/>
+      <line x1="555" y1="333" x2="555" y2="383" stroke="var(--ink-3)" stroke-width="1.2" stroke-dasharray="4 3"/>
+    </svg>
+  </div>
+
+  <h3 id="life">What it does — one workflow's journey</h3>
+  <p>The straight line down the middle is the happy path. The two branches <em>are the product</em>: a crash mid-step is
+    recovered by lease takeover with no duplicate side effect, and a risky decision suspends the workflow to a human at
+    zero compute. Everything else in this doc exists to make those two branches boring.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 680 600" width="100%" style="font-family:var(--sans);display:block" role="img"
+         aria-label="Workflow lifecycle: start commits state and queue entry in one transaction; a worker claims with a lease; the step loop decides, records, intends, executes, settles; crash branch shows lease expiry and takeover with dedupe; approval branch shows zero-compute suspension and escalation; terminal states are completed or dead-lettered with a committed-effects list.">
+      <defs>
+        <marker id="lh" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink-3)"/></marker>
+        <marker id="lr" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--red)"/></marker>
+        <marker id="la" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--amber)"/></marker>
+      </defs>
+      <rect x="120" y="20" width="220" height="40" rx="8" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
+      <text x="230" y="45" text-anchor="middle" font-size="13" fill="var(--ink)">start · SDK → API</text>
+      <rect x="120" y="78" width="220" height="46" rx="8" fill="var(--panel)" stroke="var(--cyan)"/>
+      <text x="230" y="98" text-anchor="middle" font-size="13" fill="var(--ink)">one txn: row + event + queue</text>
+      <text x="230" y="114" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">no dual write — ever</text>
+      <rect x="120" y="142" width="220" height="46" rx="8" fill="var(--panel)" stroke="var(--cyan)"/>
+      <text x="230" y="162" text-anchor="middle" font-size="13" fill="var(--ink)">worker claims · lease + token</text>
+      <text x="230" y="178" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">FOR UPDATE SKIP LOCKED</text>
+      <!-- step loop band -->
+      <rect x="96" y="206" width="268" height="192" rx="12" fill="var(--cyan-soft)" opacity="0.35"/>
+      <text x="110" y="226" font-size="10.5" fill="var(--cyan)" style="font-family:var(--mono)" letter-spacing="1">THE STEP LOOP · §3</text>
+      <rect x="120" y="236" width="220" height="40" rx="8" fill="var(--violet-soft)" stroke="var(--violet)"/>
+      <text x="230" y="256" text-anchor="middle" font-size="12.5" fill="var(--ink)">decide — code or model</text>
+      <text x="230" y="270" text-anchor="middle" font-size="10" fill="var(--violet)">decision recorded as a fact</text>
+      <rect x="120" y="288" width="220" height="40" rx="8" fill="var(--amber-soft)" stroke="var(--amber)"/>
+      <text x="230" y="308" text-anchor="middle" font-size="12.5" fill="var(--ink)">intend → execute tool</text>
+      <text x="230" y="322" text-anchor="middle" font-size="10" fill="var(--amber)">intent + idempotency key first</text>
+      <rect x="120" y="340" width="220" height="40" rx="8" fill="var(--panel)" stroke="var(--cyan)"/>
+      <text x="230" y="360" text-anchor="middle" font-size="12.5" fill="var(--ink)">settle · checkpoint (fenced)</text>
+      <text x="230" y="374" text-anchor="middle" font-size="10" fill="var(--ink-3)">loop until done-criteria / suspend</text>
+      <rect x="120" y="424" width="220" height="40" rx="8" fill="var(--green-soft)" stroke="var(--green)"/>
+      <text x="230" y="444" text-anchor="middle" font-size="12.5" fill="var(--ink)">completed ✓</text>
+      <text x="230" y="458" text-anchor="middle" font-size="10" fill="var(--green)">audit log = full decision provenance</text>
+      <rect x="120" y="480" width="220" height="44" rx="8" fill="var(--red-soft)" stroke="var(--red)"/>
+      <text x="230" y="499" text-anchor="middle" font-size="12.5" fill="var(--ink)">dead-lettered</text>
+      <text x="230" y="515" text-anchor="middle" font-size="10" fill="var(--red)">carries its committed-effects list</text>
+      <line x1="230" y1="60" x2="230" y2="76" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#lh)"/>
+      <line x1="230" y1="124" x2="230" y2="140" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#lh)"/>
+      <line x1="230" y1="188" x2="230" y2="234" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#lh)"/>
+      <line x1="230" y1="276" x2="230" y2="286" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#lh)"/>
+      <line x1="230" y1="328" x2="230" y2="338" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#lh)"/>
+      <line x1="230" y1="398" x2="230" y2="422" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#lh)"/>
+      <line x1="230" y1="464" x2="230" y2="478" stroke="var(--ink-3)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#lh)"/>
+      <!-- crash branch -->
+      <line x1="340" y1="308" x2="440" y2="308" stroke="var(--red)" stroke-width="1.4" marker-end="url(#lr)"/>
+      <rect x="442" y="270" width="216" height="80" rx="8" fill="var(--red-soft)" stroke="var(--red)"/>
+      <text x="550" y="291" text-anchor="middle" font-size="11.5" fill="var(--ink)" font-weight="600">💥 kill -9 mid-step</text>
+      <text x="550" y="308" text-anchor="middle" font-size="10" fill="var(--ink-2)">lease expires → another worker claims,</text>
+      <text x="550" y="322" text-anchor="middle" font-size="10" fill="var(--ink-2)">re-reads the facts, dedupes via the</text>
+      <text x="550" y="336" text-anchor="middle" font-size="10" fill="var(--ink-2)">idempotency key — no double refund</text>
+      <path d="M550,350 L550,372 L364,372" fill="none" stroke="var(--red)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#lr)"/>
+      <text x="560" y="366" font-size="9.5" fill="var(--red)" style="font-family:var(--mono)">resume, don't replay</text>
+      <!-- approval branch -->
+      <line x1="340" y1="256" x2="440" y2="220" stroke="var(--amber)" stroke-width="1.4" marker-end="url(#la)"/>
+      <rect x="442" y="164" width="216" height="88" rx="8" fill="var(--amber-soft)" stroke="var(--amber)"/>
+      <text x="550" y="185" text-anchor="middle" font-size="11.5" fill="var(--ink)" font-weight="600">⏸ high-risk decision</text>
+      <text x="550" y="202" text-anchor="middle" font-size="10" fill="var(--ink-2)">suspend — rows in Postgres, zero compute;</text>
+      <text x="550" y="216" text-anchor="middle" font-size="10" fill="var(--ink-2)">human approves in dashboard;</text>
+      <text x="550" y="230" text-anchor="middle" font-size="10" fill="var(--ink-2)">timeout → escalate to backup approver</text>
+      <path d="M470,252 L470,258 L364,258" fill="none" stroke="var(--amber)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#la)"/>
+    </svg>
+  </div>
+
+  <div class="concept">
+    <span class="lab">Concept · record, don't replay</span>
+    <p>Classic durable execution (Temporal, Cadence) achieves crash-safety by <b>deterministic replay</b>: re-run the
+      workflow code from the top, feeding back recorded results, and require the code to take the same path every time.
+      Latch inverts this: it <b>records every decision — model outputs, tool outcomes, budget charges — as an
+      append-only fact</b>, and recovery means <em>reading the facts forward and continuing from the last checkpoint</em>.
+      Nothing is ever re-executed to reconstruct state. Two consequences fall out for free: an LLM's non-determinism is
+      irrelevant (the decision is already a fact), and <b>deploying new code mid-run is safe</b> (no replay means no
+      divergence to detect). The price: workflow state must be an explicit, serialisable value, not implicit in code
+      position — §4 makes that concrete.</p>
+  </div>
+
+  <!-- SECTION 1 -->
+  <h2 class="section" id="reqs"><span class="num">1.</span> Requirements</h2>
+
+  <div class="locked">
+    <h3>Locked project frame (what these requirements assume)</h3>
+    <ul>
+      <li><b>Solo, ~1 month at 4–5 h/day</b> — a 120–150 hour budget. Local-first on Docker Compose; free/cheap infrastructure.</li>
+      <li><b>Node + TypeScript end to end</b> — engine, SDK, API, dashboard, harness.</li>
+      <li><b>The Temporal test:</b> every feature is checked against <i>"would Temporal already do this?"</i> If durability were the only value, this is a worse Temporal — the agent-native control plane (budgets, loop detection, tool-risk approvals, decision audit) must stay central.</li>
+      <li><b>Distinct from the other portfolio projects:</b> Replay is AI-<i>reasons</i>/human-acts over telemetry; mint headlines p99/throughput. Latch is AI-<i>acts</i> with durable orchestration, and its headline is <b>correctness under failure and cost control — never latency</b>.</li>
+      <li><b>Built incrementally as vertical slices</b> — the whole stack grows thin-and-together; the support-ticket demo is the development workload from day one; no capability is "done" until the harness can falsify it.</li>
+      <li><b>The demo test:</b> a workflow earns an agent only if "could I just write the branches?" is <i>no</i>. (Employee onboarding was rejected on exactly this test.)</li>
+    </ul>
+  </div>
+
+  <div class="concept">
+    <span class="lab">Concept · functional vs non-functional</span>
+    <p><b>Functional requirement (FR)</b> = <i>what</i> the system does — a feature, a verb ("resume the workflow").
+      <b>Non-functional requirement (NFR)</b> = <i>how well</i> — here, mostly <b>invariants</b>: properties that must
+      hold on <em>every</em> execution, under <em>every</em> failure schedule. In a correctness-first project the NFRs
+      aren't targets to approach; they're laws the harness tries to falsify.</p>
+  </div>
+
+  <h3 id="functional">Functional requirements</h3>
+
+  <div class="tier must">
+    <div class="head"><span class="pill">MUST</span> The engine + the proof <span class="sub">— produces the headline numbers</span></div>
+    <ol>
+      <li><b>Durable workflow execution</b> — append-only event log; state is a projection of it; a workflow resumes from recorded facts after any crash.</li>
+      <li><b>Transactional queue</b> — enqueue and state transition commit in <i>one</i> Postgres transaction; claiming via <code>FOR UPDATE SKIP LOCKED</code>.</li>
+      <li><b>Worker leasing</b> — heartbeat, expiry, takeover, and a <b>fencing token</b> so a paused-then-revived worker can never corrupt state.</li>
+      <li><b>Effectively-once side effects</b> — an intent record + mandatory idempotency key written <i>before</i> any tool executes; retries dedupe at the tool boundary.</li>
+      <li><b>Agent steps as recorded decisions</b> — model id, prompt hash, output, tokens, dollar cost, latency — resumed from, never re-asked.</li>
+      <li><b>Envelope enforcement</b> — per-workflow dollar budget (reserve-before-spend) and iteration caps; a runaway loop halts at the ceiling, structurally.</li>
+      <li><b>Human-in-the-loop suspension</b> — workflow sleeps in Postgres at zero compute; approve/deny API; timeout escalates to a backup approver.</li>
+      <li><b>Dead-lettering</b> — permanent failures stop retrying and land in a DLQ row that carries the workflow's <b>committed-side-effects list</b> (what a human may need to compensate).</li>
+      <li><b>Verification harness</b> — seeded randomized fault schedules + invariant assertions over the event log. This <i>produces</i> the headline number, so it is not optional and not last.</li>
+      <li><b>TypeScript SDK</b> — define a workflow (goal + phases + tools + done-criteria + envelope), start it, await status.</li>
+      <li><b>Demo workflow 1: support-ticket resolution</b> — unstructured intent, judgment against a prose policy, non-idempotent remedies, approval thresholds. Grows with the engine from chunk C1.</li>
+    </ol>
+  </div>
+
+  <div class="tier should">
+    <div class="head"><span class="pill">SHOULD</span> Committed <span class="sub">— droppable only via the §10 drop ladder</span></div>
+    <ol start="12">
+      <li><b>Dashboard</b> — per-step trace view (where the audit log proves effectively-once) and the approval queue first; list view + costs after.</li>
+      <li><b>Demo workflow 2: invoice processing</b> — document extraction across vendor formats, discrepancy investigation, model routing, exercises the DLQ. Deliberately a different shape, kept thin.</li>
+      <li><b>Loop &amp; stall detection</b> beyond caps — repeated identical tool-call hashing, no-progress windows; stall → suspend to a human, not silent death.</li>
+      <li><b>Model routing</b> — per-phase model tiers; % saved measured against the quality suite (no regression allowed).</li>
+      <li><b>Cancellation</b> — observed at step boundaries; reports committed effects.</li>
+      <li><b>Provider backpressure</b> — Redis token buckets per provider; honor 429/Retry-After; workflows queue rather than fail.</li>
+      <li><b>Tool-ecosystem adapters (MCP + LangChain)</b> — an MCP client and a LangChain <code>StructuredTool</code> adapter behind the <code>ToolExecutor</code> port; adapted tools register with declared risk classes and pass the idempotency key through (the §6 external boundary applies unchanged). The core loop stays framework-free — LangChain supplies <i>tools</i>, never orchestration (that would rebuild the thesis on the competitor's checkpointer).</li>
+      <li><b>Proposer/critic verification</b> — an independent second model call gates every <i>irreversible</i> intent; disagreement suspends to a human (D18). The minimal, honestly-named form of multi-agent orchestration — and measured: critic catch / false-block rate (Tier 3).</li>
+    </ol>
+  </div>
+
+  <div class="tier could">
+    <div class="head"><span class="pill">COULD</span> Descope if time runs short <span class="sub">— all scheduled in week 4 or later</span></div>
+    <ol start="20">
+      <li><b>Cross-workflow case memory</b> — pgvector retrieval of this tenant's prior <i>resolved</i> cases into the investigation context. Advisory context only, never invariant-bearing; the harness pairs it with a fake embedder so seeds stay deterministic. (Within-workflow memory needs no vectors — the event log already <i>is</i> it.)</li>
+      <li><b>Live-updating dashboard</b> (SSE) and a cost-analytics page.</li>
+    </ol>
+  </div>
+
+  <div class="tier wont">
+    <div class="head"><span class="pill">WON'T</span> Out of scope now <span class="sub">— named, so each is a decision</span></div>
+    <ol start="22">
+      <li><b>Full deterministic simulation</b> (virtualised time/IO, FoundationDB-style) — <i>pre-registered as a stretch goal</i>; seeded fault schedules give most of the reproducibility for a fraction of the work (§9 is honest about the difference). Also out: Kafka/RabbitMQ (see D2), multi-tenant SaaS auth/RBAC (a <code>tenant_id</code> column only), automated saga compensation (the DLQ's committed-effects list + manual requeue instead), horizontal scale-out beyond N workers on one box, <b>graph retrieval / Neo4j</b> (nothing in Latch genuinely wants a graph — workflows are linear event logs, case memory is similarity retrieval; a second stateful store would spend the one-transactional-store thesis to buy a keyword), and <b>claiming exactly-once against arbitrary third-party APIs</b> (§6 states precisely what is and isn't guaranteed).</li>
+    </ol>
+  </div>
+
+  <h3 id="nonfunctional">Non-functional requirements — the invariants &amp; SLOs</h3>
+  <div class="concept">
+    <span class="lab">Concept · invariant</span>
+    <p>An <b>invariant</b> is a property that must hold at every observable point of every execution — not on average,
+      not usually: <i>always</i>. I1–I4 below are the four laws of this system. The harness (§9) exists to try to break
+      them across thousands of randomized schedules; one violation is a bug, reproducible from its seed.</p>
+  </div>
+  <div class="tblwrap"><table>
+    <thead><tr><th>#</th><th>Requirement</th><th>Target</th><th>Forces this design decision</th></tr></thead>
+    <tbody>
+      <tr><td><b>I1</b></td><td><b>No duplicate side effects</b></td><td><span class="slo">0 across ≥5,000 seeded schedules</span></td><td class="force">intent + idempotency key <b>before</b> execution; effects table dedupe (§6)</td></tr>
+      <tr><td><b>I2</b></td><td><b>No lost workflows</b></td><td><span class="slo">every start reaches a terminal or suspended state; 0 orphans</span></td><td class="force">single-txn enqueue; expired leases are claimable; DLQ backstop</td></tr>
+      <tr><td><b>I3</b></td><td><b>Single owner</b></td><td><span class="slo">never two concurrent owners of one workflow</span></td><td class="force">lease + <b>fencing token</b> checked at every write (§5)</td></tr>
+      <tr><td><b>I4</b></td><td><b>Budget ceiling holds</b></td><td><span class="slo">worst-case spend ≤ envelope, always</span></td><td class="force">reserve-before-spend accounting (§7)</td></tr>
+      <tr><td>5</td><td>Crash takeover latency</td><td><span class="slo">&lt; 2× lease TTL (≈ 30s worst case)</span></td><td class="force">short TTL + claim-time recovery; no separate reaper</td></tr>
+      <tr><td>6</td><td>Deploy safety</td><td><span class="slo">restart mid-run under new code → 0 corruption</span></td><td class="force">record-don't-replay; state is data, not code position</td></tr>
+      <tr><td>7</td><td>Suspension cost</td><td><span class="slo">a suspended workflow = rows only, zero compute</span></td><td class="force">no held processes/connections; <code>due_at</code> timers in Postgres (§8)</td></tr>
+      <tr><td>8</td><td>Harness determinism</td><td><span class="slo">same seed → same schedule → same verdict</span></td><td class="force">logical workers, mocked model/tools, injected clock (§9)</td></tr>
+      <tr><td>9</td><td>Cost visibility</td><td><span class="slo">$ per workflow + routing savings %, quality-checked</span></td><td class="force">cost on every decision event; routing suite in CI (§7, §9)</td></tr>
+      <tr><td>10</td><td>Observability</td><td><span class="slo">every step: model, tokens, $, latency in the trace</span></td><td class="force">the event log <i>is</i> the trace; dashboard reads it directly</td></tr>
+      <tr><td>11</td><td>Portability</td><td><span class="slo">docker compose up runs everything</span></td><td class="force">12-factor config; Postgres + Redis + Node only</td></tr>
+      <tr><td>12</td><td>Throughput</td><td><span class="slo">capacity-planned, never headlined</span></td><td class="force">mint owns that axis; measured in §2 for sizing only</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="decisions1">Key decisions &amp; trade-offs at this stage</h3>
+  <p class="note">Each lists the real alternatives, the pick, and why it wins. We never just state the choice.</p>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 1</span> Durability model — replay, record, or plain retries?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Deterministic replay (Temporal's model)</span> — re-run workflow code, feed back recorded results. Battle-tested, and — honestly — it <i>can</i> host an agent loop: put the LLM call in an Activity and its result is recorded, not re-executed. But it demands deterministic orchestration code forever, and its versioning story (patching APIs, worker version sets) makes mid-run deploys genuinely painful.</div>
+      <div class="opt"><span class="name">Plain job queue + retries (BullMQ-style)</span> — simplest, but a retry re-runs the whole handler: side effects double-fire, and there is no step-level resume at all.</div>
+      <div class="opt win"><span class="name">Record decisions, resume from facts</span> — every decision and outcome is an append-only fact; recovery reads facts forward from the checkpoint. No replay, no determinism constraint on any code.</div>
+      <div class="why"><b>We record.</b> Not because Temporal "can't do LLMs" — it can, via activities — but because (a) mid-run deploys become <i>trivially</i> safe, which is a real Temporal pain point worth headlining; (b) the recorded-decision log is exactly the agent-native audit artifact (who decided what, at what cost, with what evidence) that replay histories obscure; and (c) the control plane this project actually exists for — budgets, loop detection, risk-gated approvals — has to be hand-rolled on Temporal anyway. The honest pitch: <i>"Temporal can host an agent; Latch makes the agent the first-class citizen."</i></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 2</span> Queue — Postgres <code>SKIP LOCKED</code>, or a real broker?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Kafka / RabbitMQ</span> — purpose-built throughput and fan-out. But enqueue and state update now span two systems: the <b>dual-write problem</b> — a crash between "published to broker" and "committed to DB" (either order) leaves a lost or duplicated workflow. Outbox patterns patch this at real complexity cost, and I2's "zero lost workflows" claim would rest on that patch.</div>
+      <div class="opt"><span class="name">Redis streams/lists</span> — fast, but Redis persistence is best-effort by default and it's a second stateful system inside the correctness boundary.</div>
+      <div class="opt win"><span class="name">Postgres as the queue</span> — a ready-workflow row <i>is</i> the queue entry; claim with <code>SELECT … FOR UPDATE SKIP LOCKED</code>; enqueue + state transition are one ACID transaction, always.</div>
+      <div class="why"><b>We pick Postgres.</b> The exactly-once story requires atomicity between queue and state, and one transactional store gives it by construction rather than by pattern. This is an industry-validated approach (Oban, Graphile Worker, River, pg-boss, DBOS all ride it), so it's defensible, not naive. At this project's scale (§2) Postgres has orders of magnitude of headroom; the broker's throughput advantage buys nothing here and costs the invariant.</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 3</span> Side-effect semantics — what may we honestly claim?</div>
+    <div class="body">
+      <div class="opt"><span class="name">"Exactly-once", unqualified</span> — impossible against an external system without its cooperation: the crash window between "call executed" and "outcome recorded" cannot be closed from our side alone. Claiming it invites the first distributed-systems interviewer to demolish it.</div>
+      <div class="opt"><span class="name">At-most-once</span> — never retry after an ambiguous failure. No duplicates, but work is silently lost; violates I2's spirit.</div>
+      <div class="opt win"><span class="name">Effectively-once</span> — <b>exactly-once intent recording</b> + <b>at-least-once execution</b> + <b>dedupe via a mandatory idempotency key</b> honored at the tool boundary.</div>
+      <div class="why"><b>We claim effectively-once, precisely.</b> For tools Latch owns (the demo tools), the effects table makes dedupe airtight and the harness verifies it mechanically — that's the headline "zero duplicate side effects, verified at the tool boundary." For external APIs, the key is passed through (Stripe-style) and the guarantee is exactly as good as the provider's idempotency support — stated, not hidden. Structurally, <code>ToolExecutor</code> takes the key as a <i>required</i> parameter: a tool without a key cannot exist, the same philosophy as tool scoping (D7).</div>
+    </div>
+  </div>
+
+  <div class="locked">
+    <h3>Section 1 — locked ✓ <span class="note">(pending your review)</span></h3>
+    <p>The MoSCoW tiers, the four invariants I1–I4 + eight supporting NFRs, and decisions 1–3 (record-don't-replay with the honest Temporal framing · Postgres-as-queue · effectively-once) frame everything below.</p>
+  </div>
+
+  <!-- SECTION 2 -->
+  <h2 class="section" id="capacity"><span class="num">2.</span> Capacity &amp; cost estimates</h2>
+
+  <div class="concept">
+    <span class="lab">Concept · the headline here is seeds and dollars, not QPS</span>
+    <p>For a high-traffic service the capacity story is req/s. Latch's story is <b>how many randomized failure schedules
+      the invariants survive</b> and <b>what a workflow costs</b>. Throughput gets sized below strictly so we know the
+      demo won't fall over — it stays out of every headline (mint already owns that axis).</p>
+  </div>
+
+  <h3>Design assumptions (the inputs)</h3>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Input</th><th>Value</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Design-target load</td><td><span class="slo">~1,000 workflows/day</span></td><td>demo runs far less; sizing headroom</td></tr>
+      <tr><td>Steps per workflow</td><td><span class="slo">10–30</span></td><td>mixed code + agent steps</td></tr>
+      <tr><td>Agent decisions per workflow</td><td><span class="slo">3–8</span></td><td>the only slow, costly steps</td></tr>
+      <tr><td>Event size</td><td><span class="slo">~2 KB avg (JSONB)</span></td><td>decisions carry prompt hash, not full prompt</td></tr>
+      <tr><td>Lease heartbeat / TTL</td><td><span class="slo">5 s / 15 s</span></td><td>D13 justifies the numbers</td></tr>
+      <tr><td>Harness sweep</td><td><span class="slo">5,000 seeds × ~50 events</span></td><td>mocked model — no API calls, no cost</td></tr>
+      <tr><td>Model prices (rough)</td><td><span class="slo">small ≈ $0.001, large ≈ $0.02 per decision</span></td><td>order-of-magnitude, for routing math</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The headline number — invariants over seeds</h3>
+  <p>A full sweep is <b>5,000 seeds × ~50 events ≈ 250K executed events</b>. With the model and tools mocked
+    deterministically and logical in-process workers (§9), an event costs ~1–2 ms against local Postgres →
+    a full sweep runs in <b>≈ 5–10 minutes</b>. That makes it a <i>nightly CI job</i>, with a 500-seed slice
+    (&lt; 1 min) as the PR gate. The published claim: <b>zero duplicate side effects, zero lost workflows, zero
+    double-owners, zero budget breaches across 5,000 randomized crash schedules</b> — each number regenerable by
+    anyone from the seeds.</p>
+
+  <h3>Cost per workflow — and why budgets exist</h3>
+  <p>Support ticket ≈ 6 decisions: 4 routed small (~$0.004) + 2 large (~$0.04) ≈ <b>$0.05/workflow</b>; envelope
+    ceiling $0.50 gives 10× headroom. The dark side: an uncapped loop on a large model burns <b>$0.02+ per
+    iteration, forever</b> — at one stuck workflow per hundred, cost scales with <i>bugs</i>, not load. That asymmetry
+    is why I4 is an invariant with reserve-before-spend enforcement (§7), not a dashboard alert.</p>
+
+  <h3 id="takeover">Latency &amp; takeover budget — where the time goes</h3>
+  <div class="diagram">
+    <svg viewBox="0 0 680 150" width="100%" style="font-family:var(--sans);display:block" role="img"
+         aria-label="Per-step latency: claim and checkpoint are milliseconds, the model call of one to ten seconds dominates. Crash takeover: detection within the 15 second lease TTL plus claim time, under 20 seconds worst case.">
+      <text x="30" y="26" font-size="12" fill="var(--ink-2)">one agent step · where the time goes</text>
+      <rect x="30" y="40" width="14" height="26" rx="3" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
+      <rect x="46" y="40" width="500" height="26" rx="3" fill="var(--violet-soft)" stroke="var(--violet)"/>
+      <rect x="548" y="40" width="14" height="26" rx="3" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
+      <text x="37" y="82" text-anchor="middle" font-size="9" fill="var(--cyan)" style="font-family:var(--mono)">claim ~ms</text>
+      <text x="296" y="58" text-anchor="middle" font-size="10.5" fill="var(--violet)" style="font-family:var(--mono)">model call 1–10 s — dominates everything</text>
+      <text x="560" y="82" text-anchor="middle" font-size="9" fill="var(--cyan)" style="font-family:var(--mono)">settle ~ms</text>
+      <text x="30" y="112" font-size="12" fill="var(--ink-2)">crash → takeover (NFR 5)</text>
+      <rect x="230" y="120" width="300" height="20" rx="3" fill="var(--red-soft)" stroke="var(--red)"/>
+      <rect x="532" y="120" width="40" height="20" rx="3" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
+      <text x="380" y="134" text-anchor="middle" font-size="9.5" fill="var(--red)" style="font-family:var(--mono)">≤ lease TTL 15 s (undetected)</text>
+      <text x="552" y="134" text-anchor="middle" font-size="8.5" fill="var(--cyan)" style="font-family:var(--mono)">claim</text>
+      <text x="590" y="134" font-size="9.5" fill="var(--ink-2)" style="font-family:var(--mono)">&lt; 20 s</text>
+    </svg>
+  </div>
+  <p>Storage is a non-problem: 1,000 workflows/day × 20 events × 2 KB ≈ <b>40 MB/day</b> — keep the full audit log
+    forever and never think about retention in v1. Queue pressure at design load is ~0.2 claims/s against a store
+    comfortable at thousands — Postgres-as-queue has ~4 orders of magnitude of headroom (D2 vindicated by arithmetic).</p>
+
+
+  <h3 id="scaling">Where this design ends — the scaling tiers</h3>
+  <p>The headroom above is a claim about <i>this</i> load. The honest follow-up is what happens past it, because
+    Postgres-as-queue is not free throughput: <b>every claim is a write and every heartbeat is a write</b>. Knowing the
+    ceiling — and which symptom arrives first — is what makes D2 a decision rather than a preference.</p>
+
+  <div class="tblwrap"><table>
+    <thead><tr><th>Write</th><th>Per step</th><th>Per ~6-step workflow</th></tr></thead>
+    <tbody>
+      <tr><td>Claim — <code>UPDATE</code> lease token + expiry</td><td class="force">1</td><td class="force">6</td></tr>
+      <tr><td>Heartbeat — <code>UPDATE</code> expiry every 5 s while running</td><td class="force">~1–2</td><td class="force">~9</td></tr>
+      <tr><td>Checkpoint — <code>INSERT</code> event + projection update, one txn</td><td class="force">1</td><td class="force">6</td></tr>
+      <tr><td><b>Total</b></td><td class="force">~4</td><td class="force"><b>~21–25 write operations</b></td></tr>
+    </tbody>
+  </table></div>
+  <p>At design load that is <b>~0.3 writes/s</b>. At one workflow per second — 86,000/day, two orders of magnitude
+    beyond this project — it is ~25 writes/s, still unremarkable.</p>
+
+  <div class="concept">
+    <span class="lab">Concept · what breaks first is vacuum pressure, not throughput</span>
+    <p>The two tables age very differently. <code>workflow_events</code> is <b>append-only</b>, so it never produces
+      dead tuples — the case Postgres handles best. <code>workflows</code> is <b>updated on every claim and every
+      heartbeat</b>, and each <code>UPDATE</code> leaves a dead tuple behind.</p>
+    <p>That asymmetry is the whole scaling story. If autovacuum falls behind on the queue table it bloats, index scans
+      slow, claims take longer, workers back up, and the pressure compounds. <b>This shows up long before any
+      throughput ceiling does</b> — which is why the first fixes are storage-level, not architectural.</p>
+  </div>
+
+  <div class="tblwrap"><table>
+    <thead><tr><th>Scale</th><th>Writes/s</th><th>What the design needs</th></tr></thead>
+    <tbody>
+      <tr><td>&lt; 10k workflows/day</td><td class="force">&lt; 3</td><td>Nothing. <b>This project sits here</b>, ~4 orders of magnitude below the wall.</td></tr>
+      <tr><td>10k – 1M/day</td><td class="force">3 – 300</td><td>Tuning only, no architecture change: aggressive autovacuum on <code>workflows</code>; keep <code>lease_expires_at</code> <b>unindexed</b> so heartbeats stay HOT updates and never touch an index; raise the heartbeat interval 5 s → 15 s, which cuts heartbeat writes 3× at the cost of slower takeover detection (NFR 5 rebalanced, not broken).</td></tr>
+      <tr><td>1M – 10M/day</td><td class="force">300 – 2,500</td><td>Real work: partition <code>workflow_events</code> by month and archive cold partitions to S3; add a connection pooler; and <b>move heartbeats out of Postgres</b> — see below.</td></tr>
+      <tr><td>&gt; 10M/day</td><td class="force">2,500+</td><td>The single-writer ceiling is real. Shard by tenant, one Postgres per shard, routing at the API. This is what Temporal does to its own persistence layer — the pattern is not exotic, it is just work.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="concept">
+    <span class="lab">Concept · the tier-3 move — split the hot path from the durable path</span>
+    <p>Heartbeats and events have opposite requirements. A heartbeat is <b>high-frequency and disposable</b> — losing
+      one means an earlier takeover, nothing worse. An event is <b>low-frequency and must be durable forever</b>.
+      Postgres is excellent at the second and merely adequate at the first under churn.</p>
+    <p>So at tier 3, move <b>heartbeats</b> to Redis and keep the <b>fencing token</b> in Postgres, incremented once
+      per claim rather than once per beat. The churn collapses while the token stays authoritative in the same store
+      as the writes it guards, so D11's fencing argument is untouched.</p>
+    <p><b>This does not contradict D4 — it is D4's rejected option becoming correct at a load D4 was not written for.</b>
+      D4 rejected split liveness because two systems would hold an opinion about it for no benefit at <i>this</i> scale.
+      At tier 3 the benefit exists. And the failure mode stays advisory in exactly the sense D4 demands: if Redis dies,
+      every lease looks expired, a wave of takeovers happens, and fencing makes every displaced worker's write match
+      zero rows. Extra work, no corruption.</p>
+  </div>
+
+  <div class="honest">
+    <span class="lab">Honesty box · none of this is measured</span>
+    <p>The tiers above are arithmetic and published experience from the Postgres-queue implementations named in D2
+      (Oban, River, Graphile Worker), not benchmarks run against Latch. The only number here this project will actually
+      produce is its own: <b>~0.3 writes/s</b>, and the sweep timings from M4. Presenting the rest as measured would be
+      the same error the harness exists to prevent.</p>
+  </div>
+
+  <h3 id="decisions2">Key decisions &amp; trade-offs</h3>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 4</span> Where do leases live — Postgres, Redis, or both?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Heartbeats in Redis, leases in Postgres</span> — the original sketch: Redis is "fast" for frequent beats. But now two systems hold an opinion about liveness, and during a partition you must answer which is authoritative — a <b>split-brain</b> question bought for no benefit.</div>
+      <div class="opt"><span class="name">Everything in Redis</span> — fast, but the queue/state txn boundary (D2) is broken again; correctness now depends on Redis persistence.</div>
+      <div class="opt win"><span class="name">Leases + heartbeats wholly in Postgres</span> — a heartbeat is <code>UPDATE workflows SET lease_expires_at = now() + ttl WHERE id = $1 AND lease_token = $2</code>. One authority.</div>
+      <div class="why"><b>We keep liveness entirely in Postgres.</b> A heartbeat every 5 s per <i>active</i> workflow is negligible write load at this scale, and the one-transactional-store narrative — the same argument that rejected Kafka — stays unbroken. Rule, stated in the doc and enforced in review: <b>Redis is advisory; no invariant may ever read from it.</b></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 5</span> Lease granularity — per step, or held across steps?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Hold the lease across steps</span> — claim once, heartbeat, run many steps. Fewer claim queries, sticky locality; but a takeover waits on TTL from wherever the worker died, and fairness needs explicit yielding.</div>
+      <div class="opt"><span class="name">Pin a worker for the workflow's life</span> — simplest mental model, but a suspended workflow would hold a worker: violates NFR 7 outright.</div>
+      <div class="opt win"><span class="name">Claim → one step → checkpoint → release</span> — the lease covers exactly one step; between steps the workflow is just a ready row again.</div>
+      <div class="why"><b>We lease per step.</b> The claim query costs ~1 ms; the step it wraps costs 1–10 s of model call — the overhead is noise (§2 arithmetic), and in exchange every crash window shrinks to one step, takeover is maximally fresh, fairness is automatic, and suspension falls out naturally (don't re-enqueue until resumed). Hold-across-steps remains a pure optimization behind the same claim interface if ever needed — the design doesn't foreclose it.</div>
+    </div>
+  </div>
+
+  <div class="locked">
+    <h3>Section 2 — locked ✓ <span class="note">(pending your review)</span></h3>
+    <p>Headline = invariants over 5,000 seeds (a 5–10 min sweep, CI-able); cost math justifies budgets-as-invariant;
+      takeover &lt; 20 s; storage trivial. Decisions 4–5: liveness wholly in Postgres (Redis advisory only); lease per step.</p>
+  </div>
+
+  <!-- SECTION 3 -->
+  <h2 class="section" id="arch"><span class="num">3.</span> High-level architecture</h2>
+
+  <h3 id="components">Components &amp; ports</h3>
+  <p>Seven components, each with a narrow interface (a <b>port</b> — an interface the core owns, with swappable
+    implementations behind it, i.e. hexagonal architecture). The two ports that carry the whole design are
+    <code>ModelClient</code> (so the harness can substitute a deterministic fake) and <code>ToolExecutor</code>
+    (so idempotency is structural).</p>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Component</th><th>Responsibility</th><th>Key interface / port</th></tr></thead>
+    <tbody>
+      <tr><td><b>API server</b></td><td>start / status / cancel / approve / list; validation; auth token</td><td class="force">REST + zod schemas</td></tr>
+      <tr><td><b>Engine core</b></td><td>the step loop: claim → load → decide → record → intend → execute → settle</td><td class="force">pure library, no I/O of its own</td></tr>
+      <tr><td><b>Store</b></td><td>Postgres: workflows, events, intents, effects, approvals, DLQ; all writes fenced</td><td class="force"><code>Store</code> port — real PG in prod, same PG in harness</td></tr>
+      <tr><td><b>Agent runtime</b></td><td>model calls, decision recording, envelope, routing, loop/stall detection</td><td class="force"><code>ModelClient</code> port — OpenAI driver / deterministic fake (provider is a driver, never a dependency)</td></tr>
+      <tr><td><b>Tool registry</b></td><td>scoped dispatch; risk classes; idempotency enforcement</td><td class="force"><code>ToolExecutor</code> port — key is a required parameter</td></tr>
+      <tr><td><b>SDK</b></td><td>define workflows; start; await; typed state</td><td class="force"><code>WorkflowDefinition&lt;S&gt;</code></td></tr>
+      <tr><td><b>Dashboard</b> · <b>Harness</b></td><td>React trace/approvals view · seeded schedules + invariant sweep</td><td class="force">both read the same event log — no privileged backdoor</td></tr>
+    </tbody>
+  </table></div>
+
+  <pre><b>// The SDK surface — a workflow is a goal + phases + envelope; the step sequence is emergent</b>
+interface WorkflowDefinition&lt;S&gt; {
+  name: string; version: number;
+  initial(input: unknown): S;
+  envelope: {
+    budgetUsd: number; maxSteps: number; maxWallClockMs: number;
+    approvals: Record&lt;RiskClass, ApprovalRule&gt;;   // risk class → auto | approve(threshold) | always
+  };
+  phases: Phase&lt;S&gt;[];
+}
+type Phase&lt;S&gt; =
+  | { kind: 'code';  name: string; run(state: S, ctx: StepCtx): Promise&lt;PhaseResult&lt;S&gt;&gt; }
+  | { kind: 'agent'; name: string; goal: string;
+      tools: ToolRef[];                    // not in this array ⇒ structurally uncallable (D7)
+      done(state: S): boolean;             // the done-criteria, checked in code
+      modelTier: 'small' | 'large' };      // routing (D17)</pre>
+
+  <h3 id="steploop">The step loop — one claim's anatomy</h3>
+  <p class="note">Click a stage. This loop is the whole engine; every deep dive in Phase 2 details one or two of its stages.</p>
+  <div class="pipe" id="pipe"></div>
+  <div id="stageDetail"></div>
+
+  <h3 id="examples">Worked examples — one engine, four stories</h3>
+  <p class="note">Step through each. The first is the headline demo; the fourth is the anti-Temporal party trick.</p>
+  <div class="tabs" id="exTabs"></div>
+  <div class="exwrap">
+    <div class="exhead">
+      <div><b id="exTitle" style="font-size:1.05rem"></b><div class="sym" id="exSym"></div></div>
+      <span class="exbadge" id="exBadge"></span>
+    </div>
+    <div class="exminis" id="exMinis"></div>
+    <div class="evlog" id="exLog"></div>
+    <div id="exDiag"></div>
+    <div id="exContrast" class="contrast" style="display:none"></div>
+    <div class="exctrl">
+      <button class="btn primary" id="exStep">Step ▶</button>
+      <button class="btn" id="exReset">Reset</button>
+      <span class="muted" id="exProg" style="font-family:var(--mono);font-size:.78rem"></span>
+    </div>
+  </div>
+
+  <h3 id="decisions3">Key decisions &amp; trade-offs</h3>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 6</span> What <i>is</i> a workflow definition?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Full code DSL (Temporal-style)</span> — author every branch in code. Maximum control, but the agent is decorative: if you can write the branches, you didn't need a model (the demo test).</div>
+      <div class="opt"><span class="name">Pure goal prompt (AutoGPT-style)</span> — hand the model a goal and every tool. Maximum autonomy, unboundable behavior; impossible to audit or budget honestly.</div>
+      <div class="opt win"><span class="name">Phased envelope</span> — a workflow = goal + phases + done-criteria + envelope; each phase is either plain code or an agent step with a scoped tool subset. The step <i>sequence within a phase</i> is emergent; the phase structure is not.</div>
+      <div class="why"><b>We pick phased.</b> "Deterministic by default, agentic only where judgment is required" is the design position — extraction and dispatch are code (cheap, testable); investigation and policy judgment are agent phases (where a model earns its cost). The envelope makes autonomy boundable; the phase boundary gives the harness natural checkpoints.</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 7</span> Tool guardrails — structural or prompt-based?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Prompt-based</span> — "you may only use these tools." A convention the model can violate under adversarial or confused input; unfalsifiable in review.</div>
+      <div class="opt win"><span class="name">Structural scoping</span> — the dispatcher resolves tool calls against the phase's <code>tools</code> array; a name not in the array raises a structured error event, before any intent is written.</div>
+      <div class="why"><b>Structural, always.</b> A guardrail the model cannot cross by being wrong is categorically different from one it's asked not to cross. Same doctrine as the mandatory idempotency key (D3) and the budget reserve (§7): make the illegal state unrepresentable, not discouraged.</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 8</span> State — mutable row, pure event sourcing, or both?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Mutable state row only</span> — simple reads, but history is gone: no audit, no "why did it decide that," and recovery has nothing to reason from.</div>
+      <div class="opt"><span class="name">Pure event sourcing</span> — events only, fold on every read. Maximal purity; but the queue needs an indexable "ready" flag and dashboards need cheap lists — folding everywhere is gratuitous pain.</div>
+      <div class="opt win"><span class="name">Events authoritative + projected row</span> — append-only <code>workflow_events</code> is the truth; the <code>workflows</code> row is a projection (status, step_seq, budget counters) updated <i>in the same transaction</i> as the append.</div>
+      <div class="why"><b>Both, with a clear master.</b> Same-transaction projection means the row can never drift from the log (a <code>latch verify</code> command re-folds and diffs, as a CI check). The log gives audit + recovery + the harness's witness; the row gives the queue and dashboard O(1) reads. This is textbook CQRS-lite, minus the eventual-consistency pain because it's one store.</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 9</span> What drives approval policy?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Per-workflow ad-hoc rules</span> — each definition hand-codes when to ask a human. Repetitive, and reviewers can't reason about coverage.</div>
+      <div class="opt win"><span class="name">Tool-risk classification</span> — every tool declares a risk class (<code>read</code> / <code>write</code> / <code>irreversible</code>); the envelope maps class → rule (auto, approve over $threshold, always approve). The engine enforces the map at the <i>intend</i> stage.</div>
+      <div class="why"><b>Risk classes drive policy.</b> It's declarative (auditable in one glance), it composes (new tool → declare its class → policy applies), and it's the agent-native feature Temporal has no analog for — promoted from the risk-list to a core mechanism precisely because it passes the Temporal test.</div>
+    </div>
+  </div>
+
+  <div class="locked">
+    <h3>Section 3 — locked ✓ <span class="note">(pending your review)</span></h3>
+    <p>Seven components on two load-bearing ports; the 8-stage step loop; four worked stories (crash-dedupe, runaway,
+      approval, mid-run deploy). Decisions 6–9: phased envelope · structural scoping · events + same-txn projection ·
+      risk-driven approvals. <b>Phase 1 complete — Phase 2 dives into each stage.</b></p>
+  </div>
+
+  <!-- ============ PHASE 2 ============ -->
+
+  <h2 class="section" id="eventlog"><span class="num">4.</span> Deep dive — event log &amp; state machine</h2>
+  <p>The substrate everything else writes to. Two tables carry the design: an append-only event log (the truth) and a
+    projected workflow row (the queue + the dashboard's read model).</p>
+
+  <div class="concept">
+    <span class="lab">Concept · event sourcing &amp; projections</span>
+    <p><b>Event sourcing</b>: persist changes as an ordered log of immutable events; current state is a <b>fold</b>
+      (reduce) over them. A <b>projection</b> is a derived, queryable view of the log. Latch's twist: the projection is
+      updated in the <i>same transaction</i> as the append, so it is never stale — we take event sourcing's audit and
+      recovery superpowers and skip its eventual-consistency tax.</p>
+  </div>
+
+  <pre><b>-- The two load-bearing tables (abridged; full DDL in migrations)</b>
+CREATE TABLE workflows (
+  id              uuid PRIMARY KEY,
+  tenant_id       text NOT NULL,
+  def_name        text NOT NULL,  def_version int NOT NULL,
+  status          text NOT NULL,            -- ready|running|suspended|completed|dead_lettered|cancelled
+  phase_idx       int  NOT NULL DEFAULT 0,
+  step_seq        int  NOT NULL DEFAULT 0,  -- next event sequence
+  state           jsonb NOT NULL,           -- the projected S
+  run_after       timestamptz NOT NULL DEFAULT now(),
+  lease_owner     text,  lease_token bigint NOT NULL DEFAULT 0,
+  lease_expires_at timestamptz,
+  budget_reserved_c int NOT NULL DEFAULT 0, budget_spent_c int NOT NULL DEFAULT 0,
+  attempts        int NOT NULL DEFAULT 0
+);
+CREATE INDEX ON workflows (status, run_after);          -- the queue index
+
+CREATE TABLE workflow_events (
+  workflow_id uuid NOT NULL REFERENCES workflows(id),
+  seq         int  NOT NULL,
+  type        text NOT NULL,
+  payload     jsonb NOT NULL,
+  recorded_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (workflow_id, seq)             -- ← collision point: a stale writer's seq already exists
+);</pre>
+
+  <h3>The event vocabulary</h3>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Event type</th><th>Emitted when</th><th>Payload carries</th></tr></thead>
+    <tbody>
+      <tr><td><code>workflow_started</code></td><td>API start txn</td><td>input, def name+version, envelope snapshot</td></tr>
+      <tr><td><code>phase_entered</code></td><td>phase transition</td><td>phase idx, kind</td></tr>
+      <tr><td><code>decision_recorded</code></td><td>agent step returns</td><td>model id, prompt hash, output, tokens, $, latency</td></tr>
+      <tr><td><code>intent_recorded</code></td><td><i>before</i> any side effect</td><td>tool, args, <b>idempotency key</b>, risk class</td></tr>
+      <tr><td><code>outcome_recorded</code></td><td>tool settled (ran or deduped)</td><td>result | error, deduped?, attempt</td></tr>
+      <tr><td><code>budget_reserved / settled</code></td><td>around each model call</td><td>reserved¢, actual¢</td></tr>
+      <tr><td><code>suspended / approved / denied / escalated / resumed</code></td><td>HITL (§8)</td><td>approval id, approver, due_at</td></tr>
+      <tr><td><code>stall_detected</code></td><td>loop/no-progress trip (§7)</td><td>signal: cycle-hash | no-progress | cap</td></tr>
+      <tr><td><code>retry_scheduled</code></td><td>transient failure</td><td>attempt, backoff, error class</td></tr>
+      <tr><td><code>cancelled / dead_lettered / completed</code></td><td>terminal</td><td>DLQ: reason + <b>committed-effects list</b></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 10</span> Payload encoding — JSONB or typed columns?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Typed columns per event type</span> — schema-enforced, but ~14 event types ⇒ a migration per new field and a table sprawl that buys nothing the app layer can't.</div>
+      <div class="opt win"><span class="name">JSONB payload + zod schemas at the boundary</span> — one table; every append and every read passes a zod parse, so shape errors fail loudly in TypeScript where they're cheap.</div>
+      <div class="why"><b>JSONB + zod.</b> Postgres validates the invariant-bearing fields the engine itself needs (they're real columns: seq, type, workflow_id); the payload evolves at TypeScript speed. Standard trade — schema-on-write at the app layer, storage stays flexible.</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 11</span> Write-collision defense — advisory locks or the (id, seq) key?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Advisory locks / SELECT FOR UPDATE on the workflow row for the whole step</span> — holds a DB lock across a 10-second model call: connection pinned, vacuum blocked, and a crashed holder stalls everyone until timeout.</div>
+      <div class="opt win"><span class="name">Optimistic: PRIMARY KEY (workflow_id, seq) + fencing token predicate</span> — writers never hold locks across I/O; a stale writer's append simply fails its WHERE or violates the PK.</div>
+      <div class="why"><b>Optimistic, two layers.</b> The fencing predicate (§5) rejects a zombie's write by token; the (id, seq) primary key is the belt-and-braces beneath it — even a pathological interleaving cannot record two events at one sequence. Locks held across model calls are how systems die in demos.</div>
+    </div>
+  </div>
+
+  <h3>Where it fails — and the guardrails</h3>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Failure mode</th><th>Effect</th><th>Guardrail</th></tr></thead>
+    <tbody>
+      <tr><td>Projection drifts from log</td><td>dashboard lies; queue misfires</td><td class="force">same-txn update + <code>latch verify</code> re-fold diff in CI</td></tr>
+      <tr><td>Unbounded state blob</td><td>slow claims, bloated events</td><td class="force">state size cap enforced at settle; large artifacts stored by reference</td></tr>
+      <tr><td>Schema evolution breaks old events</td><td>resume fails after deploy</td><td class="force">zod schemas are versioned with the definition; NFR 6 is a harness case</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="locked">
+    <h3>Section 4 — locked ✓ <span class="note">(pending your review)</span></h3>
+    <p>Append-only events (truth) + same-txn projection (queue/reads); a 14-type vocabulary whose two stars are
+      <code>intent_recorded</code> and <code>decision_recorded</code>; JSONB+zod; optimistic (id, seq) + fencing.
+      The log is simultaneously the audit trail, the recovery source, and the harness's witness.</p>
+  </div>
+
+  <h2 class="section" id="leasing"><span class="num">5.</span> Deep dive — queue &amp; leases</h2>
+  <p>How work is claimed, kept, stolen, and — critically — how a stolen-from worker is prevented from doing damage
+    when it wakes back up.</p>
+
+  <pre><b>-- CLAIM: one atomic statement — expired leases are just another claimable row</b>
+UPDATE workflows w
+SET    status='running', lease_owner=$worker, lease_token=lease_token+1,
+       lease_expires_at=now()+interval '15 seconds'
+WHERE  w.id = (
+  SELECT id FROM workflows
+  WHERE  (status='ready'  AND run_after &lt;= now())
+      OR (status='running' AND lease_expires_at &lt; now())   -- ← takeover path
+  ORDER BY run_after
+  LIMIT 1
+  <b>FOR UPDATE SKIP LOCKED</b>                                    -- contended rows are skipped, not waited on
+)
+RETURNING w.id, w.lease_token;
+
+<b>-- HEARTBEAT (every 5s while a step runs)</b>
+UPDATE workflows SET lease_expires_at=now()+interval '15 seconds'
+WHERE id=$wf AND lease_token=$token;    -- 0 rows updated ⇒ we lost the lease: abort the step
+
+<b>-- FENCED APPEND (every write the worker makes)</b>
+INSERT INTO workflow_events (workflow_id, seq, type, payload)
+SELECT $wf, $seq, $type, $payload
+WHERE EXISTS (SELECT 1 FROM workflows WHERE id=$wf AND lease_token=$token);</pre>
+
+  <div class="concept">
+    <span class="lab">Concept · fencing token</span>
+    <p>A lease alone cannot stop a <b>zombie</b>: a worker that pauses (GC, VM stall, network partition), loses its
+      lease to a takeover, then wakes and keeps writing. The fix is a <b>fencing token</b> — a number that increments
+      on every claim; every write carries it and is rejected if it's stale. Latch's <code>lease_token</code> bumps on
+      claim, so the zombie's writes hit a WHERE that matches zero rows. This is the canonical solution (Kleppmann's
+      <i>DDIA</i> lock-service example) — and I3 exists to prove ours actually works.</p>
+  </div>
+
+  <h3>The crash windows, enumerated</h3>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Crash point</th><th>What's on disk</th><th>Recovery</th></tr></thead>
+    <tbody>
+      <tr><td>After claim, before decide</td><td>lease only</td><td class="force">TTL expires → next claim re-runs the step from facts; nothing was written</td></tr>
+      <tr><td>After decision recorded</td><td>decision event</td><td class="force">resume sees the decision fact → skips the model call (never re-asks)</td></tr>
+      <tr><td>After intent, before execute</td><td>intent, no outcome</td><td class="force">retry executes; dedupe layer answers "already ran?" → no (safe)</td></tr>
+      <tr><td><b>After execute, before settle</b></td><td>intent + provider effect, no outcome</td><td class="force"><b>the dangerous window</b> — retry consults the effects table / provider by key → dedupes (§6)</td></tr>
+      <tr><td>Zombie wakes post-takeover</td><td>anything it tries</td><td class="force">fencing token: every write matches zero rows; I3</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 12</span> Recovering expired leases — reaper process or claim-time?</div>
+    <div class="body">
+      <div class="opt"><span class="name">A background reaper</span> — a sweeper resets expired leases to ready. Another process to run, monitor, and crash; a gap between sweep intervals adds takeover latency.</div>
+      <div class="opt win"><span class="name">Claim-time recovery</span> — the claim query's OR-branch treats an expired-lease row as claimable directly; takeover <i>is</i> a claim.</div>
+      <div class="why"><b>Claim-time.</b> One less process, zero added latency (the next hungry worker performs the takeover), and the token bump happens atomically inside the same claim UPDATE — no window where the row is "reset but unclaimed."</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 13</span> Heartbeat 5 s / TTL 15 s — why these numbers?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Tight (1 s / 3 s)</span> — fast takeover, but a routine GC pause or laptop hiccup triggers spurious takeovers; fencing makes that <i>safe</i> but each one wastes a step's model spend.</div>
+      <div class="opt"><span class="name">Loose (30 s / 90 s)</span> — nearly no false takeovers, but NFR 5's &lt;20 s recovery is blown and the kill-demo looks sluggish.</div>
+      <div class="opt win"><span class="name">5 s / 15 s — TTL = 3 missed beats</span> — tolerates two straight missed heartbeats before takeover.</div>
+      <div class="why"><b>3-missed-beats is the classic ratio</b> (same shape as Raft election timeouts ≫ heartbeat interval). Worst honest takeover ≈ TTL + claim ≈ 16 s &lt; the 20 s budget, while a single slow GC doesn't cause churn. Config knobs, defaults defended.</div>
+    </div>
+  </div>
+
+  <div class="locked">
+    <h3>Section 5 — locked ✓ <span class="note">(pending your review)</span></h3>
+    <p>Three SQL statements are the whole mechanism: SKIP LOCKED claim (with the takeover OR-branch), token-guarded
+      heartbeat, fenced append. Five crash windows enumerated — each one becomes a named injection point in §9.</p>
+  </div>
+
+  <h2 class="section" id="exactly"><span class="num">6.</span> Deep dive — the effectively-once tool layer</h2>
+  <p>The invariant I1 lives here. The mechanism is one rule: <b>no side effect without a prior intent, no intent
+    without an idempotency key, no retry without consulting the key.</b></p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 680 210" width="100%" style="font-family:var(--sans);display:block" role="img"
+         aria-label="Timeline of a side-effecting step: decision, intent recorded, tool executes, outcome recorded. Three crash windows marked: before intent nothing happened; between intent and execute retry is safe; between execute and settle the retry must dedupe by idempotency key.">
+      <defs><marker id="xh" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink-3)"/></marker></defs>
+      <line x1="40" y1="70" x2="640" y2="70" stroke="var(--border-2)" stroke-width="2"/>
+      <circle cx="90"  cy="70" r="7" fill="var(--violet)"/>
+      <circle cx="250" cy="70" r="7" fill="var(--amber)"/>
+      <circle cx="430" cy="70" r="7" fill="var(--amber)"/>
+      <circle cx="590" cy="70" r="7" fill="var(--cyan)"/>
+      <text x="90"  y="50" text-anchor="middle" font-size="11" fill="var(--violet)">decision</text>
+      <text x="250" y="50" text-anchor="middle" font-size="11" fill="var(--amber)">intent + key ✍</text>
+      <text x="430" y="50" text-anchor="middle" font-size="11" fill="var(--amber)">tool executes 💸</text>
+      <text x="590" y="50" text-anchor="middle" font-size="11" fill="var(--cyan)">outcome ✍</text>
+      <rect x="100" y="92" width="140" height="30" rx="6" fill="var(--green-soft)" stroke="var(--green)"/>
+      <text x="170" y="111" text-anchor="middle" font-size="9.5" fill="var(--green)">crash here: nothing happened — rerun freely</text>
+      <rect x="260" y="130" width="160" height="30" rx="6" fill="var(--green-soft)" stroke="var(--green)"/>
+      <text x="340" y="149" text-anchor="middle" font-size="9.5" fill="var(--green)">crash here: intent, no effect — retry safe</text>
+      <rect x="440" y="168" width="180" height="34" rx="6" fill="var(--red-soft)" stroke="var(--red)"/>
+      <text x="530" y="182" text-anchor="middle" font-size="9.5" fill="var(--red)">crash here: effect happened, unrecorded —</text>
+      <text x="530" y="195" text-anchor="middle" font-size="9.5" fill="var(--red)">retry MUST ask "did this key run?"</text>
+      <line x1="170" y1="90" x2="170" y2="74" stroke="var(--green)" stroke-width="1.2" marker-end="url(#xh)"/>
+      <line x1="340" y1="128" x2="340" y2="74" stroke="var(--green)" stroke-width="1.2" marker-end="url(#xh)"/>
+      <line x1="530" y1="166" x2="510" y2="74" stroke="var(--red)" stroke-width="1.2" marker-end="url(#xh)"/>
+    </svg>
+  </div>
+
+  <pre><b>// The port that makes idempotency structural — a tool without a key cannot exist</b>
+interface ToolExecutor {
+  execute(intent: {
+    idempotencyKey: string;      // REQUIRED — derived, never invented (D14)
+    tool: string;
+    args: unknown;
+    riskClass: RiskClass;
+  }): Promise&lt;ToolOutcome&gt;;
+}
+
+<b>-- Owned tools: the dedupe is a unique constraint, not a convention</b>
+CREATE TABLE effects (
+  idempotency_key text PRIMARY KEY,        -- second insert with the same key fails
+  workflow_id uuid NOT NULL, tool text NOT NULL,
+  result jsonb, executed_at timestamptz NOT NULL DEFAULT now()
+);</pre>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 14</span> Idempotency-key derivation — per attempt or per step?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Per attempt (<code>wf·step·attempt</code>)</span> — every retry gets a fresh key ⇒ every retry re-executes ⇒ the dedupe is decorative. This is the classic silent bug in home-rolled idempotency.</div>
+      <div class="opt"><span class="name">Random UUID minted at execute time</span> — worse: the crash loses the key itself, so the retry can't even ask the right question.</div>
+      <div class="opt win"><span class="name">Per step (<code>wf_id · step_seq</code>), minted into the intent record</span> — stable across every retry of that step, durable before any effect.</div>
+      <div class="why"><b>Step-scoped, recorded in the intent.</b> The key must name the <i>logical effect</i>, not the physical attempt — that's the entire point of the key. Writing it into the intent event before execution means even the §5 "dangerous window" retry recovers the key from disk and dedupes correctly.</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 15</span> Who answers "did this key already run?"</div>
+    <div class="body">
+      <div class="opt"><span class="name">Each tool self-implements dedupe</span> — N tools × N hand-rolled checks; one forgetful tool silently breaks I1 for everyone.</div>
+      <div class="opt win"><span class="name">Engine-level effects table for owned tools; pass-through for external APIs</span> — the dispatcher inserts into <code>effects</code> in the same transaction as the tool's local effect; external calls carry the key to providers that honor it (Stripe et al.).</div>
+      <div class="why"><b>Centralize it.</b> For owned tools the unique constraint makes I1 mechanical — the harness can count rows. For external APIs we state the honest boundary (D3): the guarantee equals the provider's idempotency support, and the intent log still bounds the blast radius to "at most once ambiguous call, listed in the audit."</div>
+    </div>
+  </div>
+
+  <div class="honest">
+    <span class="lab">Honesty box · what "effectively-once" does not cover</span>
+    <p>A third-party API with no idempotency support can, in the §5 dangerous window, receive a duplicate call — no
+      client-side design can prevent that, only document it. Latch's claim is scoped: <b>zero duplicates through the
+      tool layer for key-honoring tools (verified across all seeds), and a complete intent audit for everything else.</b>
+      Interviewers poke here; this box is the prepared answer.</p>
+  </div>
+
+  <div class="locked">
+    <h3>Section 6 — locked ✓ <span class="note">(pending your review)</span></h3>
+    <p>Intent-before-effect, step-scoped keys recorded durably, engine-level dedupe with a unique constraint, and an
+      honest external boundary. I1's verification: count executions per key over every seeded log — the number is 1.</p>
+  </div>
+
+  <h2 class="section" id="runtime"><span class="num">7.</span> Deep dive — the agent runtime</h2>
+  <p>Where the model meets the envelope. An agent phase is a loop: build context from recorded facts → call the model →
+    record the decision → dispatch tool calls (via §6) → check done-criteria — all inside hard resource walls.</p>
+
+  <h3>Decision recording — the agent-native audit row</h3>
+  <p>Every model call becomes a <code>decision_recorded</code> event: model id, prompt hash (not the full prompt —
+    size), input/output tokens, dollar cost, latency, and the structured output. Resume reads the fact and <b>never
+    re-asks</b> — the harness asserts model-call counts to prove it. This log is the answer to "why did the agent do
+    that?" — per step, with costs — the artifact a Temporal history can't give you.</p>
+
+  <div class="concept">
+    <span class="lab">Concept · reserve-before-spend</span>
+    <p>Budget checks <i>after</i> a call can overshoot the ceiling (the call already happened) — and concurrent steps
+      make it worse. So the envelope works like a hold on a credit card: <b>reserve</b> the worst-case cost of the next
+      model call (from the tier's price table) in the claim transaction; if reservation would cross the ceiling, the
+      call <i>never happens</i>; <b>settle</b> the actual cost at record time and release the difference. I4 becomes
+      arithmetic: reserved + spent ≤ ceiling is checked as a WHERE clause, and the harness asserts it on every log.</p>
+  </div>
+
+  <h3>Loop &amp; stall detection — three tripwires</h3>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Signal</th><th>Detects</th><th>Mechanism</th></tr></thead>
+    <tbody>
+      <tr><td>Cycle hash</td><td>the same tool call repeated</td><td class="force">hash(tool+args) over a sliding window; ≥3 identical ⇒ trip</td></tr>
+      <tr><td>No-progress</td><td>decisions that change nothing</td><td class="force">N consecutive decisions with no new tool outcome and no state delta ⇒ trip</td></tr>
+      <tr><td>Hard caps</td><td>everything else</td><td class="force">maxSteps, maxWallClockMs, budget (I4) — the backstop when heuristics miss</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 16</span> What happens on a stall trip?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Hard-fail to DLQ</span> — safe and simple, but a stalled workflow often has real partial progress a human could finish in one decision; killing it wastes that.</div>
+      <div class="opt"><span class="name">Auto-summarize and force done</span> — the model grades its own stuck homework; unbounded wrongness risk on exactly the workflows already going wrong.</div>
+      <div class="opt win"><span class="name">Suspend to a human with a progress summary</span> — trip ⇒ <code>stall_detected</code> event ⇒ the §8 suspension machinery, with the recorded decisions as the case file.</div>
+      <div class="why"><b>Suspend to human.</b> It reuses HITL wholesale (no new machinery), converts a failure mode into an <i>escalation-precision</i> data point (Tier 3 metrics), and matches the design position: when judgment runs out, route to a human — don't guess harder.</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 17</span> Model routing — static per-phase tiers or a dynamic classifier?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Dynamic complexity classifier</span> — a small model routes each call. Adaptive, but adds a model call to route a model call, and the routing itself becomes a nondeterministic thing to debug and eval.</div>
+      <div class="opt win"><span class="name">Static per-phase tiers (<code>modelTier: 'small' | 'large'</code>)</span> — the definition author declares where judgment lives; extraction/triage phases ride the cheap tier.</div>
+      <div class="why"><b>Static tiers for v1.</b> Predictable, zero overhead, and cleanly measurable: run the quality suite with routing on vs. all-large, publish "X% cost saved, zero quality regression" (Tier 2's metric). A learned router is a pre-registered stretch — it needs the eval suite to exist first anyway.</div>
+    </div>
+  </div>
+
+  <h3>The critic — verification before irreversible actions</h3>
+  <p>For intents whose tool is risk-class <code>irreversible</code>, a second model role — the <b>critic</b> — reviews
+    the proposer's decision against the phase goal and the prose policy <i>before</i> the intent is written: agree ⇒
+    proceed to intend; disagree ⇒ suspend to a human with <em>both</em> opinions attached (§8). The critic's review is
+    itself a <code>decision_recorded</code> event (model, tokens, $), so the audit trail shows two independent
+    judgments in front of every irreversible effect. Honest naming: this is a <b>proposer/critic pattern</b> — the
+    minimal, defensible form of multi-agent orchestration — not a swarm, and the doc never claims otherwise.</p>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 18</span> Guarding irreversible actions — self-check, critic, or swarm?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Self-check ("are you sure?")</span> — re-ask the same model to verify its own conclusion. Nearly free, but a correlated failure: the reasoning that produced the error re-produces it on review.</div>
+      <div class="opt"><span class="name">Full multi-agent pipeline</span> — planner/researcher/executor/reviewer roles on every step. Maximum keyword coverage, but cost and latency multiply everywhere, and most steps carry no irreversible risk — unbounded machinery for a bounded problem.</div>
+      <div class="opt win"><span class="name">Proposer/critic on irreversible intents only</span> — an independent model call (fresh context: the decision, its evidence, the policy — no sunk reasoning) gates exactly the actions that cannot be undone; disagreement escalates to a human, never auto-overrides.</div>
+      <div class="why"><b>Critic, scoped by risk class.</b> It composes with existing machinery (risk classes decide <i>where</i> it runs, D9; HITL absorbs disagreements, §8), it's a structural guardrail in the doc's own doctrine, and it's measurable: the labeled suite scores catch rate and false-block rate (Tier 3). Cost stays bounded because irreversible intents are rare by construction.</div>
+    </div>
+  </div>
+
+  <div class="locked">
+    <h3>Section 7 — locked ✓ <span class="note">(pending your review)</span></h3>
+    <p>Decisions as durable audit rows (never re-asked); reserve-before-spend making I4 arithmetic; three stall
+      tripwires feeding HITL; static routing measured against the quality suite; a proposer/critic gate in front of
+      every irreversible intent (D18). Every mechanism here is one the Temporal test approves — none of it ships in a
+      generic engine.</p>
+  </div>
+
+  <h2 class="section" id="control"><span class="num">8.</span> Deep dive — HITL &amp; the control plane</h2>
+  <p>Suspension, approvals, escalation, cancellation, dead-lettering — the machinery that lets a workflow wait on a
+    human for hours at zero cost, and fail permanently without lying about what it already did.</p>
+
+  <h3>Suspension mechanics — sleeping in rows</h3>
+  <p>At the <i>intend</i> stage, the envelope's policy map (risk class → rule, D9) may demand approval. Then:
+    an <code>approvals</code> row is written (with <code>due_at</code> for escalation), a <code>suspended</code> event
+    appended, status flips to <code>suspended</code>, and the lease is released. <b>Nothing holds a process, a
+    connection, or a lease</b> — the workflow is pure data (NFR 7). Approval via API/dashboard appends
+    <code>approved</code>, flips status to <code>ready</code>, and the next hungry worker picks it up — resume is just
+    a claim. Escalation needs no scheduler process: the claim query's family includes <code>due_at &lt;= now()</code>
+    approval rows checked by the API's poll — a timer is a row with an index, the same trick as the queue itself.</p>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 19</span> Escalation — reminder, reassignment, or auto-decide?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Nag the same approver</span> — reminders decay instantly; the workflow can starve forever on one absent human.</div>
+      <div class="opt"><span class="name">Auto-approve/deny on timeout</span> — an unattended machine making the exact decision policy said needs a human — self-contradiction.</div>
+      <div class="opt win"><span class="name">Escalate to a backup approver chain</span> — <code>due_at</code> passes ⇒ <code>escalated</code> event, approval reassigned to the next approver in the envelope's chain, new due_at.</div>
+      <div class="why"><b>Escalate along a chain.</b> Deterministic, auditable (<code>escalated</code> events are Tier 3 escalation-precision data), and it terminates: the chain's end is a policy choice (final timeout ⇒ deny + DLQ), stated in the envelope rather than improvised.</div>
+    </div>
+  </div>
+
+  <h3>Retries, the error taxonomy, and the dead-letter queue</h3>
+  <div class="concept">
+    <span class="lab">Concept · error taxonomy &amp; dead-lettering</span>
+    <p>Retry policy must branch on <i>error class</i>, not error presence. <b>Transient</b> (timeouts, 429s, 5xx):
+      retry with exponential backoff + jitter, capped attempts. <b>Permanent</b> (validation failure, 4xx, tool
+      rejects args): retrying is self-harm — zero retries. <b>Ambiguous</b> (crash in the dangerous window): retry
+      <i>through the dedupe layer</i> (§6). Exhausted or permanent ⇒ <b>dead-letter</b>: stop consuming resources,
+      preserve everything, surface to a human.</p>
+  </div>
+  <p>The DLQ row carries the <b>committed-side-effects list</b> — extracted mechanically from the intent/outcome
+    events: what already happened (refund issued, email sent) that a human may need to compensate. No automated saga
+    compensation in v1 (WON'T, D3 honesty applies) — but the operator never has to archaeology the answer to "what did
+    it already do?"; the row states it. Manual requeue (reset attempts, back to ready) is the recovery path.
+    Cancellation reuses the same shape: observed at the next step boundary (leases are short, so that's soon), and the
+    cancel record carries the same committed-effects extract.</p>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 20</span> Retry ceilings — how many, and where declared?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Retry forever with backoff</span> — "eventually it'll work" — except permanent failures never do; the queue silts up with undead work and the failure is invisible precisely because it never terminates.</div>
+      <div class="opt win"><span class="name">Per-class caps in the envelope (default: transient ×5 with jittered backoff, permanent ×0), then DLQ</span></div>
+      <div class="why"><b>Cap and dead-letter.</b> Bounded badness beats optimistic infinity in an audited system: the DLQ converts silent churn into a visible, actionable queue with provenance. Defaults in the envelope so a definition can tighten them per risk profile.</div>
+    </div>
+  </div>
+
+  <div class="locked">
+    <h3>Section 8 — locked ✓ <span class="note">(pending your review)</span></h3>
+    <p>Suspension = rows + released lease (zero compute, proven by killing workers while suspended); timers = indexed
+      <code>due_at</code> columns; escalation chains with a terminating policy; error taxonomy → capped retries → DLQ
+      rows that confess their committed effects. Approval routing quality is <i>measured</i> (escalation precision, §9).</p>
+  </div>
+
+  <h2 class="section" id="harness"><span class="num">9.</span> Deep dive — the verification harness
+    <span class="exbadge" style="color:var(--green);border-color:var(--green)">the metric</span></h2>
+  <p>Everything so far claims correctness; this section is what makes the claims <i>numbers</i>. The harness is a
+    seeded schedule generator, a deterministic runtime substitution, and an invariant sweep over the one witness that
+    never lies: the event log.</p>
+
+  <div class="concept">
+    <span class="lab">Concept · property-based verification vs chaos testing</span>
+    <p><b>Chaos testing</b> perturbs a live system and watches dashboards — great for finding surprises, weak for
+      proofs (unreproducible). <b>Property-based verification</b> declares <i>invariants</i>, generates randomized
+      executions from a <b>seed</b>, and asserts the invariants after every run — the FoundationDB simulation /
+      Jepsen lineage. The seed is the superpower: any failing run is <i>reproduced exactly</i> by its seed and becomes
+      a permanent regression fixture. (Replay uses fault injection to generate demo incidents; Latch uses seeded
+      schedules to <i>falsify invariants</i> — different instrument, deliberately.)</p>
+  </div>
+
+  <div class="diagram">
+    <svg viewBox="0 0 680 240" width="100%" style="font-family:var(--sans);display:block" role="img"
+         aria-label="Harness loop: a seed feeds the schedule generator producing crash points, tool failures, and lease expiries; the engine runs with logical workers, a fake model, and an injected clock against real Postgres; the resulting event log is swept by invariant assertions; a violation dumps a regression fixture named by seed.">
+      <defs><marker id="hh" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink-3)"/></marker></defs>
+      <rect x="20" y="40" width="96" height="52" rx="10" fill="var(--amber-soft)" stroke="var(--amber)"/>
+      <text x="68" y="62" text-anchor="middle" font-size="11.5" fill="var(--ink)">seed 4217</text>
+      <text x="68" y="78" text-anchor="middle" font-size="8.5" fill="var(--ink-3)">one integer = one world</text>
+      <rect x="140" y="40" width="150" height="52" rx="10" fill="var(--panel)" stroke="var(--border-2)"/>
+      <text x="215" y="62" text-anchor="middle" font-size="11.5" fill="var(--ink)">schedule generator</text>
+      <text x="215" y="78" text-anchor="middle" font-size="8.5" fill="var(--ink-3)">crash pts · tool fails · lease expiries</text>
+      <rect x="314" y="28" width="180" height="76" rx="10" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
+      <text x="404" y="50" text-anchor="middle" font-size="11.5" fill="var(--ink)">the real engine</text>
+      <text x="404" y="66" text-anchor="middle" font-size="8.5" fill="var(--ink-2)">logical workers · fake ModelClient</text>
+      <text x="404" y="80" text-anchor="middle" font-size="8.5" fill="var(--ink-2)">injected clock · real Postgres</text>
+      <text x="404" y="96" text-anchor="middle" font-size="8.5" fill="var(--cyan)" style="font-family:var(--mono)">same SQL as production</text>
+      <rect x="518" y="40" width="142" height="52" rx="10" fill="var(--panel)" stroke="var(--border-2)"/>
+      <text x="589" y="62" text-anchor="middle" font-size="11.5" fill="var(--ink)">event log</text>
+      <text x="589" y="78" text-anchor="middle" font-size="8.5" fill="var(--ink-3)">the witness</text>
+      <rect x="314" y="150" width="346" height="56" rx="10" fill="var(--green-soft)" stroke="var(--green)"/>
+      <text x="487" y="172" text-anchor="middle" font-size="11.5" fill="var(--ink)">invariant sweep — I1 · I2 · I3 · I4</text>
+      <text x="487" y="190" text-anchor="middle" font-size="8.5" fill="var(--ink-2)">pure functions over the log; violation ⇒ fixture seeds/4217.json</text>
+      <rect x="20" y="150" width="250" height="56" rx="10" fill="var(--red-soft)" stroke="var(--red)"/>
+      <text x="145" y="172" text-anchor="middle" font-size="11.5" fill="var(--ink)">failing seed = permanent regression test</text>
+      <text x="145" y="190" text-anchor="middle" font-size="8.5" fill="var(--ink-2)">replayed exactly, forever, in CI</text>
+      <line x1="116" y1="66" x2="138" y2="66" stroke="var(--ink-3)" stroke-width="1.4" marker-end="url(#hh)"/>
+      <line x1="290" y1="66" x2="312" y2="66" stroke="var(--ink-3)" stroke-width="1.4" marker-end="url(#hh)"/>
+      <line x1="494" y1="66" x2="516" y2="66" stroke="var(--ink-3)" stroke-width="1.4" marker-end="url(#hh)"/>
+      <line x1="589" y1="92" x2="589" y2="148" stroke="var(--ink-3)" stroke-width="1.4" marker-end="url(#hh)"/>
+      <line x1="312" y1="178" x2="272" y2="178" stroke="var(--red)" stroke-width="1.4" marker-end="url(#hh)"/>
+    </svg>
+  </div>
+
+  <pre><b>// Invariants are pure functions over the finished log — no privileged engine access</b>
+I1: for every idempotency key: executions(log, key) === 1        // intents may retry; effects may not
+I2: every workflow_started reaches completed | dead_lettered | cancelled | suspended (no orphans)
+I3: fenced-write violations === 0  AND  no two overlapping lease intervals per workflow
+I4: at every prefix of the log: reserved + spent ≤ envelope.budgetUsd</pre>
+
+  <h3>What makes a seed reproducible — and what doesn't</h3>
+  <p>Three substitutions make a schedule deterministic: <b>logical workers</b> (concurrent tasks in one process, not
+    OS processes — the scheduler interleaves them by seed), a <b>fake ModelClient</b> (seeded, deterministic outputs —
+    also: 5,000 seeds would be absurd against a real API), and an <b>injected clock</b> (lease expiry and due_at are
+    driven by the schedule, not wall time). Crash points are <b>named checkpoints</b> at every §5/§6 boundary
+    (<code>after_claim</code>, <code>after_decision</code>, <code>after_intent</code>, <code>after_execute</code>,
+    <code>after_settle</code>…); the seed chooses among them. A schedule is a replayable list of (step, crash-point,
+    fault) choices — which is exactly why a failing seed replays exactly.</p>
+
+  <div class="honest">
+    <span class="lab">Honesty box · the reproducibility boundary</span>
+    <p>Seeded schedules reproduce failures <i>caused by injected faults at named points</i>. They do not control OS
+      scheduling or hardware races — a failure depending on a torn interleaving <i>between</i> checkpoints won't
+      replay. Closing that gap is full deterministic simulation (virtualized I/O and time) — pre-registered as the
+      stretch goal, not claimed in v1. Additionally, one <b>real</b> <code>kill&nbsp;-9</code> demo (OS processes,
+      real crash) runs beside the logical harness — the harness proves the invariants; the kill-demo proves the
+      harness isn't a toy.</p>
+  </div>
+
+  <div class="highlight">
+    <span class="lab">The gate-you've-seen-fail rule</span>
+    <p>A green invariant that has never been red is trusted on faith. Discipline, applied at each chunk: after wiring
+      an invariant, <b>deliberately break the mechanism it guards</b> (comment out the fencing predicate; derive keys
+      per-attempt), watch the sweep go red on a specific seed, then revert. Only then is green evidence.</p>
+  </div>
+
+  <h3>What gets published — the three tiers</h3>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Tier</th><th>Metric</th><th>How it's produced</th></tr></thead>
+    <tbody>
+      <tr><td><b>1 · correctness</b> (headline)</td><td>0 duplicate effects · 0 lost workflows · 0 double-owners · 0 budget breaches across ≥5,000 seeds; completion rate under adversarial scheduling</td><td class="force">the invariant sweep; anyone can re-run any seed</td></tr>
+      <tr><td><b>2 · cost</b></td><td>$ per workflow · % saved by routing (no quality regression) · worst-case spend = ceiling · runaways caught</td><td class="force">decision events carry $; routing suite on/off diff</td></tr>
+      <tr><td><b>3 · agent quality</b></td><td>completion rate · tool-use accuracy · escalation precision · critic catch / false-block rate · regression-suite results</td><td class="force">the labeled scenario suite (below)</td></tr>
+    </tbody>
+  </table></div>
+  <p>Tier 3 needs ground truth that doesn't build itself: a <b>fixed scenario suite of 20–50 labeled cases</b> per
+    demo workflow (expected outcome, expected escalations, expected critic verdicts), run per commit. "Completed" is checked as <i>correctly</i>
+    completed — outcome equivalence against the label, not mere termination.</p>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 21</span> Harness workers — real processes killed, or logical tasks?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Real worker processes, real kill -9</span> — maximum fidelity, but crash timing is OS-scheduled ⇒ unreproducible, slow (process spawn per scenario), and CI-hostile.</div>
+      <div class="opt win"><span class="name">Logical in-process workers + named crash points; one real kill-demo beside</span></div>
+      <div class="why"><b>Logical workers carry the number; the real kill carries the demo.</b> Determinism and speed (250K events in minutes) are what make 5,000 seeds and permanent regression fixtures possible at all; the single real-process demo covers the "but is it real?" objection without sacrificing either.</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="dh"><span class="tag">Decision 22</span> Assert on final state, or sweep the full log?</div>
+    <div class="body">
+      <div class="opt"><span class="name">Final-state assertions</span> — "it completed with the right state" — blind to everything transient: a double-execution whose effects happen to cancel, a momentary double-owner, a budget breach later refunded.</div>
+      <div class="opt win"><span class="name">Full-log sweep</span> — invariants are checked over every event, including every <i>prefix</i> for I4's "at all times."</div>
+      <div class="why"><b>Sweep the log.</b> The invariants are temporal properties, and the log is a complete record — asserting on it costs nothing extra and catches the transient violations that are precisely the bugs this project exists to prevent.</div>
+    </div>
+  </div>
+
+  <div class="locked">
+    <h3>Section 9 — locked ✓ <span class="note">(pending your review)</span></h3>
+    <p>Seeded schedules over named crash points; logical workers + fake model + injected clock against real Postgres;
+      four invariants swept over the full log; failing seeds become permanent fixtures; honesty boxes bound the claims;
+      three metric tiers with the labeled scenario suite for Tier 3. <b>This closes Phase 2.</b></p>
+  </div>
+
+  <!-- ============ PHASE 3 ============ -->
+
+  <h2 class="section" id="plan"><span class="num">10.</span> The incremental build plan
+    <span class="exbadge" style="color:var(--cyan);border-color:var(--cyan)">phase 3</span></h2>
+  <p>Twenty-one chunks, C0–C20, ~114 core hours against the 120–150 h budget. The slack is thinner than the original
+    96-hour cut — which is why the <b>drop ladder</b> below is part of the plan, not a decision deferred to a bad week.
+    The plan is <b>vertical slices, not layers</b>: the whole stack exists thin from C1 and every chunk makes one
+    thing real.</p>
+
+  <div class="concept">
+    <span class="lab">Concept · the three build rules</span>
+    <p><b>1 · Walking skeleton first</b> — C1 runs SDK→API→worker→Postgres end-to-end before anything is durable or
+      agentic, so integration risk dies in week 1. <b>2 · The demo is the dev workload</b> — the support-ticket
+      workflow exists from C1 as hardcoded steps and thickens as capabilities land; there is no "integrate the demo"
+      chunk because it was never separate. <b>3 · No capability without its falsifier</b> — each engine chunk ships
+      with its harness invariant, and the gate-you've-seen-fail rule applies at the chunk boundary. The COULD-tier
+      items all sit in the final week, so if reality intervenes, what slips is what was optional — by construction,
+      not by triage.</p>
+  </div>
+
+  <h3>The build arc</h3>
+  <div class="diagram">
+    <svg viewBox="0 0 680 140" width="100%" style="font-family:var(--sans);display:block" role="img"
+         aria-label="Build arc: week 1 substrate and durability C0 to C4, week 2 effects and agent C5 to C9, week 3 control plane and demo C10 to C13, week 4 plus flex tail: surface, numbers, ship, C14 to C20. Milestones: first kill survived at C3, invariant I1 green at C5, first live approval at C11, headline sweep at C17.">
+      <text x="140" y="34" text-anchor="middle" font-size="9" fill="var(--red)" style="font-family:var(--mono)">✦ kill -9 survived (C3)</text>
+      <line x1="140" y1="38" x2="140" y2="60" stroke="var(--red)" stroke-width="1.1" stroke-dasharray="3 2"/>
+      <text x="300" y="20" text-anchor="middle" font-size="9" fill="var(--green)" style="font-family:var(--mono)">✦ I1 green (C5)</text>
+      <line x1="300" y1="24" x2="300" y2="60" stroke="var(--green)" stroke-width="1.1" stroke-dasharray="3 2"/>
+      <text x="463" y="34" text-anchor="middle" font-size="9" fill="var(--amber)" style="font-family:var(--mono)">✦ live approval (C11)</text>
+      <line x1="463" y1="38" x2="463" y2="60" stroke="var(--amber)" stroke-width="1.1" stroke-dasharray="3 2"/>
+      <text x="613" y="20" text-anchor="middle" font-size="9" fill="var(--cyan)" style="font-family:var(--mono)">✦ 5,000-seed headline (C17)</text>
+      <line x1="613" y1="24" x2="613" y2="60" stroke="var(--cyan)" stroke-width="1.1" stroke-dasharray="3 2"/>
+      <rect x="30" y="62" width="150" height="26" rx="6" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
+      <rect x="184" y="62" width="150" height="26" rx="6" fill="var(--amber-soft)" stroke="var(--amber)"/>
+      <rect x="338" y="62" width="160" height="26" rx="6" fill="var(--violet-soft)" stroke="var(--violet)"/>
+      <rect x="502" y="62" width="148" height="26" rx="6" fill="var(--green-soft)" stroke="var(--green)"/>
+      <text x="105" y="79" text-anchor="middle" font-size="9.5" fill="var(--ink)">substrate + durability</text>
+      <text x="259" y="79" text-anchor="middle" font-size="9.5" fill="var(--ink)">effects + agent</text>
+      <text x="418" y="79" text-anchor="middle" font-size="9.5" fill="var(--ink)">control plane + demo</text>
+      <text x="576" y="79" text-anchor="middle" font-size="9.5" fill="var(--ink)">surface · numbers · ship</text>
+      <text x="105" y="102" text-anchor="middle" font-size="8.5" fill="var(--ink-3)">week 1 · C0–C4 · ~24h</text>
+      <text x="259" y="102" text-anchor="middle" font-size="8.5" fill="var(--ink-3)">week 2 · C5–C9 · ~25h</text>
+      <text x="418" y="102" text-anchor="middle" font-size="8.5" fill="var(--ink-3)">week 3 · C10–C13 · ~22h</text>
+      <text x="576" y="102" text-anchor="middle" font-size="8.5" fill="var(--ink-3)">week 4 + flex · C14–C20 · ~40h</text>
+      <text x="30" y="128" font-size="9" fill="var(--ink-3)">If the month ended after week 2, the headline (invariants over seeds + kill-demo) would already exist. Everything after compounds it.</text>
+    </svg>
+  </div>
+
+  <h3 id="chunks">The chunks</h3>
+  <div class="tblwrap"><table>
+    <thead><tr><th>#</th><th>Chunk · hrs</th><th>Delivers</th><th>Verify by</th></tr></thead>
+    <tbody>
+      <tr><td>C0</td><td>Scaffold · 3</td><td>pnpm monorepo (<code>engine · api · sdk · worker · harness · dashboard · demos</code>), Compose Postgres+Redis, migration runner, CI</td><td class="force"><code>docker compose up</code> · migrate · test green in CI</td></tr>
+      <tr><td>C1</td><td><b>Walking skeleton</b> · 5</td><td>SDK defines ticket-v0 (2 code phases, hardcoded); API start (single-txn insert); in-process worker runs code steps; status endpoint</td><td class="force">curl start → status <code>completed</code>; events visible in psql</td></tr>
+      <tr><td>C2</td><td>Event log authoritative · 4</td><td>fold/projection split (D8); state machine transitions; <code>latch verify</code> re-fold diff</td><td class="force">verify passes; mutate a row by hand → verify catches it</td></tr>
+      <tr><td>C3</td><td>Queue + leases · 6</td><td>SKIP LOCKED claim w/ takeover branch, heartbeat, fencing token (§5)</td><td class="force">2 workers; <b>kill -9 mid-run; the other finishes</b> ✦</td></tr>
+      <tr><td>C4</td><td><b>Harness skeleton</b> · 6</td><td>seeded scheduler, logical workers, named crash points, injected clock; <b>I2 + I3</b> @ 200 seeds</td><td class="force">sweep green; break fencing deliberately → red on a seed → revert</td></tr>
+      <tr><td>C5</td><td>Intents + effects · 6</td><td>intent events, effects table, <code>ToolExecutor</code> port; ticket gains a real side-effecting reply tool; <b>I1</b></td><td class="force">seeded crash in the dangerous window → executions(key)=1 ✦</td></tr>
+      <tr><td>C6</td><td>Harness scale · 4</td><td>tool-failure + lease-expiry injection; 2,000 seeds; failing-seed fixture dump; 500-seed PR gate + nightly full</td><td class="force">sweep &lt; 5 min; a planted bug yields a replayable fixture</td></tr>
+      <tr><td>C7</td><td>Agent step · 6</td><td><code>ModelClient</code> port (OpenAI + fake), decision events w/ tokens+$; ticket triage becomes a real model decision</td><td class="force">crash after decision → resume makes <b>zero</b> extra model calls (asserted)</td></tr>
+      <tr><td>C8</td><td>Tool scoping + risk · 4</td><td>per-phase tool arrays enforced in dispatch (D7); risk classes on every tool (D9)</td><td class="force">out-of-scope call → structured error event, no intent written</td></tr>
+      <tr><td>C9</td><td>Envelope · 5</td><td>reserve-before-spend, iteration caps; <b>I4</b></td><td class="force">seeded runaway halts at ceiling; I4 holds at every log prefix</td></tr>
+      <tr><td>C10</td><td>Loop/stall detection · 4</td><td>cycle hash, no-progress window; trip → suspend path (D16)</td><td class="force">planted loop trips in ≤3 repeats; <code>stall_detected</code> in trace</td></tr>
+      <tr><td>C11</td><td>HITL · 6</td><td>suspend/approve/deny API, risk→policy map, <code>due_at</code> escalation chain, resume-as-claim</td><td class="force">kill all workers while suspended; restart; approve → resumes ✦</td></tr>
+      <tr><td>C12</td><td>Retries + DLQ + cancel · 5</td><td>error taxonomy, capped backoff, DLQ w/ committed-effects list, cancel endpoint</td><td class="force">permanent failure → DLQ row confesses its effects; requeue works</td></tr>
+      <tr><td>C13</td><td>Ticket demo, full · 7</td><td>prose policy judgment, refund thresholds, non-idempotent remedies; <b>scenario suite v1 (20 labeled cases)</b></td><td class="force">Tier 3 table produced: escalation precision + tool accuracy</td></tr>
+      <tr><td>C14</td><td>Dashboard v1 · 7</td><td>React: workflow list, per-step trace (decisions, intents, $), approval queue</td><td class="force">run demo → watch trace live; approve from UI (the GIF)</td></tr>
+      <tr><td>C15</td><td>Invoice demo + routing · 7</td><td>extraction + discrepancy phases, per-phase tiers (D17), exercises DLQ</td><td class="force">routing on/off: cost ↓, scenario suite unchanged</td></tr>
+      <tr><td>C16</td><td>Backpressure + polish · 5</td><td>Redis token buckets, 429/Retry-After honor, jittered retries; compose hardening</td><td class="force">throttled fake provider → workflows queue; I2 still green</td></tr>
+      <tr><td>C17</td><td><b>Numbers + README</b> · 6</td><td>5,000-seed sweep, three-tier tables, kill-demo GIF, README with run steps</td><td class="force">stranger-clone test: compose up → reproduce every number ✦</td></tr>
+      <tr><td>C18</td><td>Critic gate · 4</td><td>proposer/critic review before intend for risk-class <code>irreversible</code> (D18); both judgments recorded as decision events</td><td class="force">labeled suite scores catch + false-block rate; disagreement → suspended, never auto-overridden</td></tr>
+      <tr><td>C19</td><td>Tool adapters · 8</td><td>MCP client + LangChain <code>StructuredTool</code> adapter behind the <code>ToolExecutor</code> port; adapted tools register with declared risk classes; one demo tool served over MCP, one from the LangChain ecosystem</td><td class="force">ticket demo calls both adapted tools; scoping + idempotency-key rules enforced (§6 boundary applies)</td></tr>
+      <tr><td>C20</td><td>Case memory · 6</td><td>pgvector store of resolved cases; retrieval into investigation context (advisory only); fake embedder in the harness</td><td class="force">prior-case context visible in the trace; full sweep still green &amp; deterministic</td></tr>
+      <tr><td>S*</td><td>Stretch (post-C20)</td><td>S1 deterministic-simulation spike · S2 learned model router · S3 <b>LangGraph baseline comparison</b> — the ticket workflow on vanilla LangGraph, kill -9 mid-refund, publish the honest diff (its checkpointer resumes; without an intent layer the retry double-fires the side effect) · S4 <b>Kubernetes manifests + kind</b> — api/worker Deployments; <code>kubectl delete pod</code> mid-workflow, lease takeover across pods. Now a <i>portability</i> demo, not the takeover proof: the MVP's M3 already takes a lease across hosts on Fargate, and managed Kubernetes was rejected on cost (D23, ~$73/mo for an EKS control plane) — so this stays on local <code>kind</code>, free</td><td class="force">only after the headline exists</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="highlight">
+    <span class="lab">The drop ladder — decided now, not under pressure</span>
+    <p>C18–C20 are the flex tail: with an honest 1.5× estimate slip, they are what the 120–150 h budget spends itself
+      on. If week 3 ends behind schedule, drop in this order: <b>C15 (invoice demo) → C20 (case memory) → C19 (tool adapters)</b>.
+      C18 drops last of the four — it strengthens the core guardrail story, not just keyword coverage. <b>C0–C14 and
+      C17 are untouchable</b>, C4–C9 especially. And the real cut lever if the <i>harness</i> slips: seed count is
+      compute, not hours (the sweep runs overnight either way) — cut <i>injection types</i> in v1, never the sweep.</p>
+  </div>
+
+  <div class="concept">
+    <span class="lab">Concept · how the demo thickens, chunk by chunk</span>
+    <p>The support-ticket workflow is the same file all month: C1 it's two hardcoded steps; C3 it survives kill -9;
+      C5 its reply tool becomes effectively-once; C7 its triage becomes a model decision; C8 its tools get scoped;
+      C9 it gets a budget; C10 it can't loop; C11 its refunds wait for approval; C12 it can fail honestly; C13 it
+      faces the labeled suite. <b>Every engine capability lands as a visible change to a workflow you can run</b> —
+      integration is continuous, never an event.</p>
+  </div>
+
+  <h3 id="mvp">The MVP cut — resume-ready first, everything else after</h3>
+  <p class="note">The MVP now has its own full execution plan — <a href="MVP.html"><b>docs/MVP.html</b></a> — with
+    per-chunk deliverables, verify gates, a live status board, and the JD coverage map. The summary below stays as the
+    cut's rationale; the companion doc is what we build from. It adds exactly one decision to this doc's sequence —
+    <b>D23–D25</b> — the AWS service set and its six deliberate rejections, the live-update transport
+    (SSE over <code>LISTEN/NOTIFY</code>), and the production edge — which live there rather than here because they are
+    decisions about deployment and surface, not about the engine.</p>
+  <p>A re-slicing of C0–C20 for shipping fast: <b>thin every axis instead of dropping axes</b>. Every resume-filter
+    keyword keeps a real, demonstrable artifact; what's deferred is <i>depth</i> — the second demo, Redis, stall
+    heuristics, the 50-case suite — never coverage. Same architecture, same repo: post-MVP work bolts on, nothing is
+    throwaway. The engine still composes down to <b>Node + Postgres only</b> (Redis enters post-MVP with backpressure).</p>
+  <p><b>Where the MVP is not a subset.</b> The cut carries a second pillar this section predates: it is
+    <b>cloud-native on AWS from week one</b> — deployed at M2, when the system is two tables and one endpoint, and
+    kept deployed. Three of its sixteen chunks (<b>M2</b> deploy the skeleton, <b>M12</b> the cloud-native
+    surface, <b>M13</b> the production edge) have no ancestor in C0–C20, because C0–C20 was drafted before that pillar
+    existed and its S4 stretch (Kubernetes) is not the same thing. They are new work, priced as new work. <b>M14</b>
+    also outgrew its C14 ancestor, promoting two COULD-tier items — a live-updating dashboard and a cost page — into
+    the MVP. The governing rule is
+    <i>managed services everywhere except the correctness path</i>: the engine core below — one Postgres holding
+    queue, state, events, intents and effects in a single transaction, plus long-lived leased workers — is unchanged
+    by any of it, which is the entire reason the deployment could be moved this early.</p>
+
+  <div class="tblwrap"><table>
+    <thead><tr><th>#</th><th>MVP chunk · hrs</th><th>Delivers (maps to)</th><th>Verify by</th></tr></thead>
+    <tbody>
+      <tr><td>M0</td><td>Scaffold · 4</td><td>pnpm monorepo, Compose (<b>Postgres only</b>), migrations, CI — plus the <b>CDK app skeleton</b> and a <b>GitHub OIDC deploy role</b>, before any real code (⊂ C0 + new)</td><td class="force">compose up · migrate · CI green; CI assumes its AWS role and <code>cdk synth</code> succeeds</td></tr>
+      <tr><td>M1</td><td>Skeleton + event log · 5</td><td>ticket-v0 code phases; start/status; append-only events + same-txn projection (C1 + C2 thin)</td><td class="force">curl start → <code>completed</code>; events in psql</td></tr>
+      <tr><td>M2</td><td><b>Deploy the skeleton</b> · 7</td><td>ECR + one image / two task definitions; ECS Fargate api + worker services; RDS Postgres w/ pgvector, private and not publicly reachable; Secrets Manager + least-privilege task roles; no ALB; CI deploys on merge (<b>new — no C ancestor</b>)</td><td class="force">the same skeleton completes a workflow <b>on Fargate against RDS, deployed by CI, zero console clicks</b>; <code>cdk destroy</code> → redeploy → still true ✦</td></tr>
+      <tr><td>M3</td><td>Queue + leases + fencing · 6</td><td>SKIP LOCKED claim, heartbeat, takeover, fencing token (C3)</td><td class="force">2 workers; <b>kill -9 mid-run; the other finishes</b> — and <code>aws ecs stop-task</code> → <b>a task on another host</b> finishes ✦</td></tr>
+      <tr><td>M4</td><td>Harness v1 · 6</td><td>seeded scheduler, logical workers, injected clock, named crash points + lease-expiry + tool-failure injection; <b>I2 + I3</b> @ 500 seeds; <b>local-only</b>, and wired as a deploy gate (C4 + C6 thin)</td><td class="force">sweep green; break fencing → red seed → revert</td></tr>
+      <tr><td>M5</td><td>Intents + effects · 5</td><td><code>ToolExecutor</code>, effects table, <b>I1</b>; ticket gains its side-effecting reply tool (C5)</td><td class="force">dangerous-window crash → executions(key)=1 ✦</td></tr>
+      <tr><td>M6</td><td>Agent step + envelope + tiers · 10</td><td>ModelClient with <b>three</b> drivers (OpenAI · <b>Bedrock via IAM</b> · fake), decision events w/ provider + $, reserve-before-spend, caps, <b>cross-provider</b> per-phase tiers; <b>I4</b> (C7 + C9 + D17 + D23)</td><td class="force">crash after decision → zero re-asks; runaway halts at ceiling; routing suite reports the Bedrock cost delta</td></tr>
+      <tr><td>M7</td><td>Scoping + risk + critic · 5</td><td>per-phase tool arrays, risk classes, proposer/critic gate on irreversible intents (C8 + C18)</td><td class="force">out-of-scope call → error event; critic disagreement → suspended</td></tr>
+      <tr><td>M8</td><td>HITL + thin DLQ · 6</td><td>suspend/approve/deny, one-hop escalation on <code>due_at</code> rows, attempt caps → DLQ with committed-effects list (C11 + C12 thin)</td><td class="force">kill workers while suspended; approve → resumes; DLQ row confesses its effects</td></tr>
+      <tr><td>M9</td><td>Tool adapters · 7</td><td>MCP client + LangChain <code>StructuredTool</code> adapter behind the port; the MCP server ships as a task sidecar (C19)</td><td class="force">ticket calls an MCP-served and a LangChain-adapted tool — scoped, keyed, in both environments</td></tr>
+      <tr><td>M10</td><td>Case memory · 4</td><td>pgvector store of resolved cases; advisory retrieval into investigation context; live embeddings, fake embedder in harness — no infra change, the extension was enabled at M2 (C20 thin)</td><td class="force">prior-case context in the trace; sweep still deterministic</td></tr>
+      <tr><td>M11</td><td>Demo policy + mini-suite · 5</td><td>prose policy, refund thresholds; <b>12 labeled cases</b> → escalation precision, tool accuracy, critic catch rate, routing savings across three provider configurations (C13 thin)</td><td class="force">Tier 2/3 mini-tables produced per commit</td></tr>
+      <tr><td>M12</td><td><b>Cloud-native surface</b> · 11</td><td><b>SQS ingress buffer</b> (adopted upstream of the transaction, where redelivery dedupes and a lost publish cannot happen — D23); queue-depth CloudWatch custom metric → ECS target-tracking autoscaling; dashboard + dead-letter alarm + cost per workflow; S3 for large artifacts by reference — the honest implementation of §4's size-cap guardrail (<b>new — no C ancestor</b>)</td><td class="force">a 500-message SQS burst ingests with no failed requests and scales the worker service <b>2 → 10 → 2</b> in the dashboard; local sweep still green ✦</td></tr>
+      <tr><td>M13</td><td><b>Production edge</b> · 3</td><td>ALB + ACM + Route 53 custom domain; ECS deployment circuit breaker with automatic rollback; a static holding page for teardown. Multi-AZ and WAF <i>declined on cost</i> (<b>new — no C ancestor</b>; D25 reverses M2's "no ALB")</td><td class="force">HTTPS at the domain; a deploy shipped mid-workflow with no dropped requests, then a broken task definition rolled back automatically ✦</td></tr>
+      <tr><td>M14</td><td>Dashboard · 11</td><td>per-step trace + approval queue + <b>workflow list</b> + <b>cost page</b>, updating <b>live over SSE</b> on a Postgres LISTEN/NOTIFY fanout (C14 in full + two COULD-tier items; D24)</td><td class="force">the trace fills with no refresh; kill the API mid-stream → the browser reconnects and catches up from the log; the sweep is byte-identical</td></tr>
+      <tr><td>M15</td><td>Ship · 4</td><td>1,000+ seed sweep, README with tiered numbers, kill-demo GIFs, <b>npm publish</b> of the SDK + engine image on GHCR/ECR, published cloud evidence + the CDK teardown path (C17 +)</td><td class="force">a stranger <code>npm install</code>s the SDK, composes up, reproduces every number — <b>with no AWS account</b> ✦</td></tr>
+    </tbody>
+  </table></div>
+
+  <p><b>~99 h core</b> ≈ 5 weeks at 4–5 h/day — inside the 120–150 h budget, but the slack is now thin, and that is
+    worth saying plainly: the original cut was 67 h / three weeks precisely so that a 1.5× slip still landed inside a
+    month. At 96 h the MVP has stopped being a fast cut and has become most of the project. The extra 29 hours bought
+    the second pillar (M2 · M12 · M13 · the Bedrock driver in M6) and the full dashboard (M14). What keeps that safe is
+    the companion doc's drop order: <b>weeks 4–5 are surface, and ~12 of the 96 hours can be cut without losing a
+    single published number</b>. The headline survives intact either way: <i>zero duplicate side effects, zero lost
+    workflows, zero double-owners, zero budget breaches across 1,000+ seeded crash schedules</i> — plus both kill
+    demos, the local <code>kill&nbsp;-9</code> and the cross-host takeover on Fargate.</p>
+
+  <div class="tblwrap"><table>
+    <thead><tr><th>Resume filter</th><th>Covered in the MVP by</th></tr></thead>
+    <tbody>
+      <tr><td>State management / durable execution</td><td class="force">event log, projections, resume-from-facts (M1–M5)</td></tr>
+      <tr><td>Async · queueing · concurrency</td><td class="force">SKIP LOCKED queue, leases, fencing tokens — takeover proven <i>across hosts</i> (M3)</td></tr>
+      <tr><td><b>Cloud-native · IaC · autoscaling</b></td><td class="force">CDK app + GitHub OIDC (M0); ECS Fargate + RDS + Secrets Manager + IAM task roles, CI-deployed (M2); CloudWatch metrics, queue-depth autoscaling, S3 artifacts (M12) — the six rejected AWS services and their reasons are D23</td></tr>
+      <tr><td>Evaluation pipelines</td><td class="force">invariant sweep over 1,000+ seeds, wired as a deploy gate, + 12-case labeled suite (M4, M11)</td></tr>
+      <tr><td>Guardrails / policy / access control</td><td class="force">structural tool scoping, risk classes, budget envelope — plus least-privilege IAM in the deployment (M6, M7)</td></tr>
+      <tr><td>Multi-agent orchestration</td><td class="force">proposer/critic gate on irreversible actions (M7)</td></tr>
+      <tr><td>Human-in-the-loop</td><td class="force">suspension, approval queue, escalation (M8, M14)</td></tr>
+      <tr><td>Tool use · MCP · LangChain</td><td class="force"><code>ToolExecutor</code> port + MCP-served and LangChain-adapted tools (M5, M9) — LangChain supplies tools, never orchestration</td></tr>
+      <tr><td>Long-term memory · vector retrieval</td><td class="force">cross-workflow case memory on pgvector (M10)</td></tr>
+      <tr><td>Cost control · model routing</td><td class="force">reserve-before-spend, per-phase tiers <b>across providers</b> (OpenAI + Bedrock), measured savings (M6, M11)</td></tr>
+      <tr><td>Observability / traceability</td><td class="force">the event log <i>is</i> the trace, plus CloudWatch and a four-surface dashboard that updates live over SSE (M12, M14)</td></tr>
+      <tr><td>Zero-downtime deploys</td><td class="force">ALB + ACM + Route 53; deployment circuit breaker with automatic rollback, exercised by a deploy shipped mid-workflow (M13). Multi-AZ declined on cost — HA is <i>not</i> claimed</td></tr>
+      <tr><td>Idempotency · exactly-once · DLQ</td><td class="force">intents, effects table, dead-letter with committed-effects list + its alarm (M5, M8, M12)</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="note">Deferred to post-MVP, in suggested order: the invoice demo (C15 — proves the engine is infrastructure,
+    not one app), cycle/no-progress stall heuristics (C10), Redis backpressure (C16), dashboard list/cost/SSE pages,
+    suite to 50 cases, extra injection types + the 5,000-seed publish, cancellation + full error taxonomy, escalation
+    chains, cloud depth if it ever earns its keep (ALB + custom domain, multi-AZ RDS, blue/green), then the stretch
+    items. Each is additive — the MVP's interfaces already have their seams.</p>
+
+  <div class="locked">
+    <h3>Section 10 — locked ✓ <span class="note">(pending your review)</span></h3>
+    <p>Twenty-one chunks in four weekly arcs plus a flex tail, ~114 h core; skeleton at C1, first kill survived at C3,
+      harness at C4–C6 (never later), the headline exists by end of week 2, and the drop ladder is pre-committed:
+      C15 → C20 → C19, with C0–C14 + C17 untouchable. The three build rules — skeleton first, demo-as-workload, no
+      capability without its falsifier — are the plan; the MVP adds a fourth, <i>both environments stay green</i>.
+      <b>The MVP cut (M0–M15, ~99 h) is the active path:</b> every resume-filter axis ships thin-first, on two pillars
+      — the durable engine, and an AWS deployment that exists from M2 and stays deployed. The deferred depth resumes
+      afterwards from the same seams.</p>
+  </div>
+
+  <!-- GATE -->
+  <div class="gate" id="gate">
+    <p><b>Gate — Phases 1–3.</b> All three phases are drafted above, pending your review. Read §0–§3 (the shape), spot-check
+      the deep dive you care most about (§6 and §9 are the load-bearing ones), and check the chunk order in §10. If it
+      reads right, say <b>next</b> to begin <b>Phase 4 — implementation, chunk M0</b> of the MVP cut (monorepo + Compose
+      (Postgres only) + migrations + CI, plus the CDK app and the OIDC deploy role). Or push back on any decision by
+      number — that's what the numbers are for, D23 included.</p>
+  </div>
+
+  <hr>
+  <p class="muted" style="font-size:.8rem">Latch · living design doc · docs/DESIGN.html · keep in sync as chunks land ·
+    Phases 1–3 drafted 2026-07-28 · amended after external review (D18 critic · C19 MCP · C20 case memory · drop ladder) ·
+    MVP cut added 2026-08-01 · provider switched to OpenAI + LangChain tool adapter added (core loop stays framework-free) ·
+    §2 gained the scaling tiers 2026-08-07 · §10 MVP cut re-synced 2026-08-07 (SQS adopted as ingress buffer, M12) · re-synced 2026-08-05 to the cloud-native restructure, and 2026-08-07 for the production edge + full dashboard (M0–M15, ~99 h; D23–D25 live in MVP.html) ·
+    Phase 4 implementation next, starting at M0.</p>
+</main>
+</div>
+
+<script>
+/* scrollspy */
+var navLinks=[].slice.call(document.querySelectorAll('nav.side a'));
+var secs=navLinks.map(function(a){return document.querySelector(a.getAttribute('href'));});
+var spy=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var id='#'+e.target.id;navLinks.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')===id);});}});},{rootMargin:'-8% 0px -82% 0px'});
+secs.forEach(function(s){if(s)spy.observe(s);});
+
+/* ===== interactive step loop ===== */
+var STAGES=[
+ {n:'1',t:'Claim',kind:'det',one:'Win the row, or skip it.',
+  in:'A ready workflow (or an expired lease)',does:'One UPDATE: FOR UPDATE SKIP LOCKED selects, lease_token increments, TTL set.',
+  out:'A leased workflow + a fresh fencing token',concept:'SKIP LOCKED queue · lease · fencing token (§5)',fail:'Crash here → TTL expires → the row is simply claimable again; nothing was written.'},
+ {n:'2',t:'Load',kind:'det',one:'Facts in, state out.',
+  in:'The event log for this workflow',does:'Fold events into typed state S; cross-check the projected row (D8).',
+  out:'Current state + the active phase',concept:'Event sourcing · projection (§4)',fail:'Projection mismatch → halt this workflow, alarm; latch verify diagnoses.'},
+ {n:'3',t:'Decide',kind:'ai',one:'Code or judgment.',
+  in:'State + phase definition',does:'Code phase: run the function. Agent phase: build context from facts, reserve budget, call the model (routed tier).',
+  out:'A decision — possibly tool calls',concept:'Phased envelope (D6) · reserve-before-spend (§7)',fail:'Reservation would breach the ceiling → the call never happens (I4). Provider down → backpressure + retry.'},
+ {n:'4',t:'Record',kind:'det',one:'The decision becomes a fact.',
+  in:'The model output + cost actuals',does:'Append decision_recorded (model, prompt hash, tokens, $, latency); settle the reservation. Fenced.',
+  out:'A durable decision no crash can un-know',concept:'Record, don’t replay (D1)',fail:'Crash after → resume reads the fact; the model is never re-asked (asserted in C7).'},
+ {n:'5',t:'Intend',kind:'eff',one:'Declare before doing.',
+  in:'A tool call the decision requested',does:'Scope-check against the phase’s tools array; risk-check against the approval map (may suspend); irreversible intents first pass the critic (D18); append intent_recorded with the step-scoped idempotency key.',
+  out:'A durable intent — or a suspension',concept:'Structural scoping (D7) · risk policy (D9) · critic (D18) · intent (§6)',fail:'Out-of-scope tool → structured error event, no intent. High risk → suspend to human (§8). Critic disagrees → suspend with both opinions.'},
+ {n:'6',t:'Execute',kind:'eff',one:'The side effect happens.',
+  in:'The recorded intent',does:'Dispatch via ToolExecutor; owned tools write the effects row (unique key) with their effect; external calls carry the key.',
+  out:'A tool result — exactly once per key',concept:'Effectively-once · idempotency key (§6)',fail:'Crash after execute, before settle → the dangerous window: retry consults the key and dedupes.'},
+ {n:'7',t:'Settle',kind:'det',one:'Checkpoint, atomically.',
+  in:'The outcome (ran, deduped, or failed)',does:'One fenced txn: outcome_recorded + projection update (state, step_seq, budget counters).',
+  out:'A consistent checkpoint',concept:'Same-txn projection (D8) · optimistic (id,seq) (D11)',fail:'Stale token → zero rows written; the zombie learns it lost (I3).'},
+ {n:'8',t:'Continue',kind:'out',one:'Release, and decide what’s next.',
+  in:'The checkpointed workflow',does:'done-criteria met → completed. More work → back to ready. Awaiting human → suspended. Exhausted → dead_lettered with its effects list.',
+  out:'ready · suspended · completed · dead_lettered',concept:'Lease-per-step (D5) · DLQ (§8)',fail:'Crash before release → TTL; the next claim resumes from this checkpoint.'}
+];
+var pipe=document.getElementById('pipe');
+if(pipe){
+ STAGES.forEach(function(s,i){var el=document.createElement('div');el.className='pstage';el.setAttribute('data-kind',s.kind);el.setAttribute('tabindex','0');el.setAttribute('role','button');
+   el.innerHTML='<div class="n">'+s.n+'</div><div class="t">'+s.t+'</div><div class="dotbar"></div>';
+   el.onclick=function(){selStage(i);};
+   el.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selStage(i);}};
+   pipe.appendChild(el);});
+ selStage(4);
+}
+function selStage(i){
+ var kids=pipe.children;for(var j=0;j<kids.length;j++){kids[j].classList.toggle('sel',j===i);}
+ var s=STAGES[i];var kindLabel={det:'durable engine',ai:'agent / model',eff:'side effect',out:'outcome'}[s.kind];
+ var col=s.kind==='det'?'cyan':s.kind==='ai'?'violet':s.kind==='eff'?'amber':'green';
+ document.getElementById('stageDetail').innerHTML=
+  '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'
+  +'<span class="exbadge" style="color:var(--'+col+');border-color:var(--'+col+')">'+kindLabel+'</span>'
+  +'<b style="font-size:1.02rem">'+s.n+' &middot; '+s.t+'</b><span class="muted" style="font-size:.9rem"> — '+s.one+'</span></div>'
+  +'<div class="row"><div class="k">in</div><div class="v">'+s.in+'</div></div>'
+  +'<div class="row"><div class="k">does</div><div class="v">'+s.does+'</div></div>'
+  +'<div class="row"><div class="k">out</div><div class="v"><b>'+s.out+'</b></div></div>'
+  +'<div class="row"><div class="k">concept</div><div class="v">'+s.concept+'</div></div>'
+  +'<div class="row"><div class="k">on failure</div><div class="v">'+s.fail+'</div></div>';
+}
+
+/* ===== worked examples ===== */
+var EX=[
+ {id:'kill',label:'kill -9 mid-refund',badge:'the headline demo',badgeColor:'var(--red)',
+  sym:'ticket #8412 · refund approved by policy · worker <b>W-A</b> executing step 7',
+  minis:['Claim','Decide','Intend','Execute','💥','Takeover','Settle'],
+  steps:[
+   {cls:'',st:'claim',text:'W-A leases wf_8412 (token=7, TTL 15s); folds 12 events into state',sig:'e1–e12'},
+   {cls:'ai',st:'decision_recorded',text:'Model decides: refund $40 to card on file — 274 tok · $0.004 · within threshold',sig:'e13'},
+   {cls:'eff',st:'intent_recorded',text:'Intent: refund.issue($40) · idempotency key <b>wf_8412·s7</b> · risk: irreversible',sig:'e14'},
+   {cls:'eff',st:'execute',text:'Payment provider returns 200 — effects row committed under key wf_8412·s7',sig:'effects✓'},
+   {cls:'crash',st:'💥 kill -9',text:'W-A dies before settle. On disk: intent + effect, NO outcome. The dangerous window.',sig:'—'},
+   {cls:'',st:'takeover',text:'15s later the lease expires; W-B claims (token=8); folds e1–e14; sees intent e14 without an outcome',sig:'lease'},
+   {cls:'',st:'outcome_recorded',text:'W-B asks the effects table: key wf_8412·s7 already executed → records outcome as <b>deduped</b>; no second provider call',sig:'e15'}],
+  diag:{h:'✓ Invariant I1 held',cause:'The audit log shows exactly one execution of refund.issue for key wf_8412·s7 — provable by counting rows, not by trusting logs.',
+        fix:'This exact schedule (crash at after_execute, step 7) is seed-reproducible in the harness.',cites:'e13 · e14 · effects(wf_8412·s7) · e15'},
+  contrast:'<b>Contrast — a plain retry queue:</b> the retry re-runs the whole handler → a second $40 refund. The intent record + step-scoped key is the entire difference.'},
+ {id:'runaway',label:'Runaway loop',badge:'budget invariant',badgeColor:'var(--amber)',
+  sym:'ticket #9020 · agent investigating · envelope: <b>$0.50</b> ceiling',
+  minis:['Decide','Repeat','Repeat','Trip','Suspend'],
+  steps:[
+   {cls:'ai',st:'decision_recorded',text:'Agent searches KB for "warranty transfer" — no useful hit · spent so far $0.31',sig:'e21'},
+   {cls:'ai',st:'decision_recorded',text:'Agent issues the <i>same</i> search — cycle hash matches e21 (repeat ×2) · $0.36',sig:'e23'},
+   {cls:'ai',st:'decision_recorded',text:'Same call again — repeat ×3 trips the cycle detector · $0.41',sig:'e25'},
+   {cls:'crash',st:'stall_detected',text:'Cycle tripwire + next reservation ($0.12) would cross the $0.50 ceiling — the call never happens',sig:'e26'},
+   {cls:'',st:'suspended',text:'Workflow suspends to a human with a progress summary (D16); lease released; zero compute',sig:'e27'}],
+  diag:{h:'✓ Invariant I4 held',cause:'Worst-case spend was bounded at $0.50 by reserve-before-spend — checked as a WHERE clause, not a dashboard alert after the bill.',
+        fix:'A human resolves the stuck decision from the approval queue; the case file is the decision log itself.',cites:'e21 · e23 · e25 · e26 · e27'},
+  contrast:'<b>Contrast — cap-free agent frameworks:</b> the loop bills until a human notices. Cost scales with bugs, not load (§2) — which is why the ceiling is an invariant, not a metric.'},
+ {id:'approve',label:'Human approval',badge:'HITL · zero compute',badgeColor:'var(--green)',
+  sym:'ticket #7733 · agent proposes a <b>$220</b> refund · threshold: approve &gt; $100',
+  minis:['Decide','Policy','Suspend','Approve','Resume'],
+  steps:[
+   {cls:'ai',st:'decision_recorded',text:'Model judges against the prose policy: refund $220 warranted (defect + shipping fault)',sig:'e31'},
+   {cls:'eff',st:'policy check',text:'Intend stage: refund.issue is risk-class irreversible; $220 &gt; $100 → approval required (D9)',sig:'map'},
+   {cls:'',st:'suspended',text:'Approval row (due 4h) + suspended event; lease released — the workflow is now rows, $0.00/hr',sig:'e32'},
+   {cls:'',st:'approved',text:'2h later: approver clicks approve in the dashboard → approved event, status → ready',sig:'e33'},
+   {cls:'eff',st:'resume = claim',text:'Next worker claims; intent → execute (key wf_7733·s9) → settle. Had 4h passed: escalated to backup approver instead',sig:'e34–e36'}],
+  diag:{h:'✓ Suspension cost: zero',cause:'Between e32 and e33 no process, connection, or lease existed for this workflow — kill every worker meanwhile and nothing changes (verified in C11).',
+        fix:'Escalation is a due_at row, not a scheduler process — a timer is an indexed column (§8).',cites:'e31 · e32 · e33 · e36'},
+  contrast:'<b>The Temporal test, passed:</b> Temporal can also sleep cheaply (signals + timers) — the agent-native part is the <i>risk-class policy map</i> deciding what needs a human, and escalation precision being a published metric.'},
+ {id:'deploy',label:'Deploy mid-run',badge:'the anti-Temporal trick',badgeColor:'var(--cyan)',
+  sym:'v2 of the engine + ticket definition ships · <b>31 workflows</b> in flight',
+  minis:['Ship','Drain','Claim','Resume'],
+  steps:[
+   {cls:'',st:'deploy',text:'v2 containers start; v1 workers finish their current step (≤ one step in flight each, D5) and exit',sig:'—'},
+   {cls:'',st:'drain',text:'wf_8901 sits at step 14 of ~22, mid-investigation — its 40+ events are facts on disk, owned by no one',sig:'e1–e41'},
+   {cls:'',st:'claim',text:'A v2 worker claims wf_8901 (token bumps); folds the same events under new code',sig:'lease'},
+   {cls:'ai',st:'decision_recorded',text:'Execution continues forward — nothing is replayed, so there is no history to diverge from; the audit log runs unbroken across the deploy',sig:'e42'}],
+  diag:{h:'✓ NFR 6 · deploy safety',cause:'Record-don’t-replay means a deploy is just a change of who folds the facts. No patching API, no version pinning, no non-determinism errors — the failure class does not exist here.',
+        fix:'The harness runs this as a first-class schedule: kill all workers, restart "new code", assert I1–I4 (C4 onward).',cites:'e41 · lease · e42'},
+  contrast:'<b>Contrast — Temporal:</b> replay-based engines need patch()/versioning APIs and worker version sets to survive this; history replayed under changed code raises non-determinism errors. This demo is Latch’s sharpest single differentiator — deploy on Friday with thousands in flight.'}
+];
+var exI=0, exStep=0;
+var exTabs=document.getElementById('exTabs');
+if(exTabs){
+ EX.forEach(function(e,i){var t=document.createElement('div');t.className='tab';t.textContent=e.label;t.setAttribute('tabindex','0');t.setAttribute('role','button');
+   t.onclick=function(){exI=i;exStep=0;renderEx();};
+   t.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();exI=i;exStep=0;renderEx();}};
+   exTabs.appendChild(t);});
+}
+function renderEx(){
+ var e=EX[exI];var i;var total=e.steps.length;
+ var tabkids=exTabs.children;for(i=0;i<tabkids.length;i++){tabkids[i].classList.toggle('sel',i===exI);}
+ document.getElementById('exTitle').textContent=e.label;
+ document.getElementById('exSym').innerHTML=e.sym;
+ var b=document.getElementById('exBadge');b.textContent=e.badge;b.style.color=e.badgeColor;b.style.borderColor=e.badgeColor;
+ var minis=document.getElementById('exMinis');minis.innerHTML='';
+ e.minis.forEach(function(nm,k){var m=document.createElement('div');
+   var frac=(k+1)/e.minis.length, done=exStep/total;
+   m.className='exmini'+(done>=frac-0.001?' on':'');
+   m.innerHTML='<div class="mn">'+(k+1)+'</div><div class="mt">'+nm+'</div>';minis.appendChild(m);});
+ var log=document.getElementById('exLog');log.innerHTML='';
+ for(i=0;i<exStep;i++){var s=e.steps[i];var r=document.createElement('div');r.className='evrow'+(s.cls?' '+s.cls:'');
+   r.innerHTML='<div class="st">'+s.st+'</div>'+s.text+' <span class="sig">['+s.sig+']</span>';log.appendChild(r);}
+ var diag=document.getElementById('exDiag');
+ if(exStep>=total){diag.innerHTML='<div class="diag"><div class="h">'+e.diag.h+'</div>'
+   +'<div><b style="color:var(--ink)">Why it held:</b> '+e.diag.cause+'</div>'
+   +'<div style="margin-top:6px"><b style="color:var(--ink)">And:</b> '+e.diag.fix+'</div>'
+   +'<div class="cites">witness: <b>'+e.diag.cites+'</b> — every claim resolves to rows in the log ✓</div></div>';}
+ else diag.innerHTML='';
+ var con=document.getElementById('exContrast');
+ con.style.display=exStep>=total?'block':'none';con.innerHTML=exStep>=total?e.contrast:'';
+ document.getElementById('exProg').textContent=exStep>=total?'complete':('step '+exStep+' / '+total);
+ var sb=document.getElementById('exStep');sb.disabled=exStep>=total;
+ sb.textContent=exStep>=total?'Proven ✓':(exStep===0?'Step ▶':'Next ▶');
+}
+var exStepBtn=document.getElementById('exStep');
+if(exStepBtn){exStepBtn.onclick=function(){if(exStep<EX[exI].steps.length){exStep++;renderEx();}};
+ document.getElementById('exReset').onclick=function(){exStep=0;renderEx();};
+ renderEx();}
+</script>

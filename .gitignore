@@ -1,0 +1,18 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local secrets. The example file is tracked; the real one never is.
+.env
+.env.*
+!.env.example
+
+# CDK synthesis output
+cdk.out/
+
+# Local agent working files
+CLAUDE.md
+.claude/
+
+.DS_Store
