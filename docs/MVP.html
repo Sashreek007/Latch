@@ -265,8 +265,8 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
     <p class="note">One row per chunk. A chunk is <b>done</b> only when its verify gate has been run — including the
       break-it-once step where one applies, and, from M2 onward, in <i>both</i> environments. Statuses update as we build.</p>
     <ol class="roadmap">
-      <li class="active"><span class="st now">now</span><span class="rl"><b>M0 · Scaffold</b> — monorepo · Compose · migrations · CI · CDK + OIDC <span class="muted">· 4h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M1 · Skeleton + event log</b> — SDK→API→worker→PG end to end <span class="muted">· 5h</span></span></li>
+      <li><span class="st done">done</span><span class="rl"><b>M0 · Scaffold</b> — monorepo · Compose · migrations · CI · CDK + OIDC <span class="muted">· 4h</span></span></li>
+      <li class="active"><span class="st now">now</span><span class="rl"><b>M1 · Skeleton + event log</b> — SDK→API→worker→PG end to end <span class="muted">· 5h</span></span></li>
       <li><span class="st next">later</span><span class="rl"><b>M2 · Deploy the skeleton</b> — ECS Fargate · RDS · Secrets Manager · CI deploys <span class="muted">· 7h</span></span></li>
       <li><span class="st next">later</span><span class="rl"><b>M3 · Queue, leases, fencing</b> — the two kill demos <span class="muted">· 6h</span></span></li>
       <li><span class="st next">later</span><span class="rl"><b>M4 · Harness v1</b> — seeded schedules · I2 + I3 <span class="muted">· 6h</span></span></li>
@@ -534,7 +534,8 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
   <!-- ===================== WEEK 1 ===================== -->
 
   <h2 class="section" id="m0"><span class="num">M0.</span> Scaffold <span class="exbadge">4h · ⊂ C0 + the cloud scaffold</span></h2>
-  <p><b>Delivers:</b> pnpm workspaces (<code>engine · sdk · api · worker · harness · dashboard · demos · infra</code>);
+  <p><b>Delivers:</b> pnpm workspaces (<code>packages/*</code> · <code>apps/*</code> · <code>infra</code>, covering
+    <code>engine · sdk · api · worker · harness · dashboard · demos · infra</code>);
     Docker Compose with a single <code>pgvector/pgvector:pg17</code> service (vector support from day one — no compose
     change at M10, and no RDS parameter change at M2 either); <b>node-pg-migrate</b> with migration 001; <b>Biome</b>;
     GitHub Actions running install → lint → test on every push; and an empty <code>RESULTS.md</code> at the repo root,
@@ -555,6 +556,14 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
     <i>and</i> CI authenticates to AWS through OIDC and <code>cdk synth</code> succeeds. Two badges exist before any
     real code does.</p></div>
   <p class="note" style="border-left:3px solid var(--amber);padding-left:.7rem"><b>→ RESULTS.md:</b> create the file now, empty. It has to predate the first measurement, or the first measurement gets written from memory (<a href="#instrument">R3</a>).</p>
+  <p class="note"><b>As built</b> — two deviations, both deliberate. <b>(1)</b> Each workspace is created in the chunk
+    that gives it its first real file, rather than eight empty shells at M0: six of them would have been a manifest
+    plus a placeholder source that exists only so the typechecker does not error on an empty package, which asserts
+    nothing and contradicts the vertical-slice rule. The gate tests commands, not directories. <b>(2)</b> Relative
+    imports across the repo end in <code>.ts</code>, not <code>.js</code> — Node 24 runs the TypeScript directly by
+    stripping types and does not rewrite import paths, so the <code>.js</code> convention resolves to a file that does
+    not exist. <code>allowImportingTsExtensions</code> permits it; <code>rewriteRelativeImportExtensions</code>
+    converts the specifiers back for the SDK's published build at M15.</p>
 
   <h2 class="section" id="m1"><span class="num">M1.</span> Walking skeleton + event log <span class="exbadge">5h · C1 + C2 thin</span></h2>
   <p class="note">Implements §4 (event log &amp; state), D8 (events authoritative + same-txn projection), D10 (JSONB + zod).</p>
