@@ -1,7 +1,14 @@
 export { createPool, withTransaction } from "./db.ts";
 export type { Phase, PhaseContext, WorkflowDefinition } from "./definition.ts";
 export { type WorkflowEvent, type WorkflowStatus, workflowEvent } from "./events.ts";
-export { append, readEvents, type StartInput, start } from "./log.ts";
+export {
+  append,
+  readEvents,
+  readWorkflow,
+  type StartInput,
+  type StoredWorkflow,
+  start,
+} from "./log.ts";
 export { fold, type Projection } from "./state.ts";
 
 /**

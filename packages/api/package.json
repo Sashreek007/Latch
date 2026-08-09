@@ -1,0 +1,21 @@
+{
+  "name": "@latch/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/server.ts"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --watch src/main.ts"
+  },
+  "dependencies": {
+    "@latch/engine": "workspace:*",
+    "fastify": "^5.11.3",
+    "pg": "^8.23.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.21.0"
+  }
+}

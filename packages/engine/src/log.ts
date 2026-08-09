@@ -23,6 +23,43 @@ export type StartInput = {
   input: Record<string, unknown>;
 };
 
+/** A workflow as callers see it — column names translated to camelCase here, once. */
+export type StoredWorkflow = {
+  id: string;
+  tenantId: string;
+  defName: string;
+  defVersion: number;
+  status: WorkflowStatus;
+  phaseIdx: number;
+  stepSeq: number;
+  state: { input: unknown; outputs: Record<string, unknown> };
+};
+
+export async function readWorkflow(db: Queryable, id: string): Promise<StoredWorkflow | null> {
+  const { rows } = await db.query<
+    ProjectionRow & { id: string; tenant_id: string; def_name: string; def_version: number }
+  >(
+    `SELECT id, tenant_id, def_name, def_version, status, phase_idx, step_seq, state
+       FROM workflows
+      WHERE id = $1`,
+    [id],
+  );
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    defName: row.def_name,
+    defVersion: row.def_version,
+    status: row.status,
+    phaseIdx: row.phase_idx,
+    stepSeq: row.step_seq,
+    state: row.state,
+  };
+}
+
 /**
  * Creates a workflow and records its opening event in one transaction. A row
  * without its first event would be a workflow whose history begins after it
