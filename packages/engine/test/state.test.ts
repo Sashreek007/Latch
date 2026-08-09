@@ -37,13 +37,20 @@ describe("fold", () => {
     });
   });
 
-  it("reaches the same projection whichever prefix it is rebuilt from", () => {
-    // Folding a prefix and then the remainder is not the same operation as
-    // folding the whole log, but it must reach the same place — this is the
-    // property the M1 gate depends on.
-    const whole = fold(ticketLog);
-    const rebuilt = fold(ticketLog.slice(0, 3).concat(ticketLog.slice(3)));
-    expect(rebuilt).toEqual(whole);
+  it("carries nothing from one fold into the next", () => {
+    fold(ticketLog);
+    expect(fold([])).toEqual({
+      status: "ready",
+      phaseIdx: 0,
+      stepSeq: 1,
+      state: { input: null, outputs: {} },
+    });
+  });
+
+  it("does not mutate the log it is given", () => {
+    const before = structuredClone(ticketLog);
+    fold(ticketLog);
+    expect(ticketLog).toEqual(before);
   });
 });
 
