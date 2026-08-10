@@ -1,0 +1,20 @@
+{
+  "name": "@latch/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/poller.ts"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --watch src/main.ts"
+  },
+  "dependencies": {
+    "@latch/demos": "workspace:*",
+    "@latch/engine": "workspace:*",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.21.0"
+  }
+}

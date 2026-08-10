@@ -4,6 +4,7 @@ export { type WorkflowEvent, type WorkflowStatus, workflowEvent } from "./events
 export {
   append,
   readEvents,
+  readReady,
   readWorkflow,
   type StartInput,
   type StoredWorkflow,

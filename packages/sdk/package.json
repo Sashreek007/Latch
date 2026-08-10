@@ -1,0 +1,21 @@
+{
+  "name": "@latch/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@latch/api": "workspace:*",
+    "@latch/demos": "workspace:*",
+    "@latch/engine": "workspace:*",
+    "@latch/worker": "workspace:*",
+    "@types/pg": "^8.21.0",
+    "fastify": "^5.11.3",
+    "pg": "^8.23.0"
+  }
+}

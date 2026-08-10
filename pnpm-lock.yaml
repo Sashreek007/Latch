@@ -81,6 +81,50 @@ importers:
         specifier: ^8.21.0
         version: 8.21.0
 
+  packages/sdk:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@latch/api':
+        specifier: workspace:*
+        version: link:../api
+      '@latch/demos':
+        specifier: workspace:*
+        version: link:../demos
+      '@latch/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@latch/worker':
+        specifier: workspace:*
+        version: link:../worker
+      '@types/pg':
+        specifier: ^8.21.0
+        version: 8.21.0
+      fastify:
+        specifier: ^5.11.3
+        version: 5.11.3
+      pg:
+        specifier: ^8.23.0
+        version: 8.23.0
+
+  packages/worker:
+    dependencies:
+      '@latch/demos':
+        specifier: workspace:*
+        version: link:../demos
+      '@latch/engine':
+        specifier: workspace:*
+        version: link:../engine
+      pg:
+        specifier: ^8.23.0
+        version: 8.23.0
+    devDependencies:
+      '@types/pg':
+        specifier: ^8.21.0
+        version: 8.21.0
+
 packages:
 
   '@aws-cdk/asset-awscli-v1@2.2.282':

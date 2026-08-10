@@ -35,19 +35,16 @@ export type StoredWorkflow = {
   state: { input: unknown; outputs: Record<string, unknown> };
 };
 
-export async function readWorkflow(db: Queryable, id: string): Promise<StoredWorkflow | null> {
-  const { rows } = await db.query<
-    ProjectionRow & { id: string; tenant_id: string; def_name: string; def_version: number }
-  >(
-    `SELECT id, tenant_id, def_name, def_version, status, phase_idx, step_seq, state
-       FROM workflows
-      WHERE id = $1`,
-    [id],
-  );
+type WorkflowRow = ProjectionRow & {
+  id: string;
+  tenant_id: string;
+  def_name: string;
+  def_version: number;
+};
 
-  const row = rows[0];
-  if (!row) return null;
+const WORKFLOW_COLUMNS = "id, tenant_id, def_name, def_version, status, phase_idx, step_seq, state";
 
+function toStoredWorkflow(row: WorkflowRow): StoredWorkflow {
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -58,6 +55,47 @@ export async function readWorkflow(db: Queryable, id: string): Promise<StoredWor
     stepSeq: row.step_seq,
     state: row.state,
   };
+}
+
+export async function readWorkflow(db: Queryable, id: string): Promise<StoredWorkflow | null> {
+  const { rows } = await db.query<WorkflowRow>(
+    `SELECT ${WORKFLOW_COLUMNS} FROM workflows WHERE id = $1`,
+    [id],
+  );
+
+  const row = rows[0];
+  return row ? toStoredWorkflow(row) : null;
+}
+
+/**
+ * Workflows waiting to be run, oldest due first, restricted to the definitions
+ * the caller can actually execute.
+ *
+ * That restriction is not an optimisation. Without it the batch fills with rows
+ * this worker must skip, they are the oldest so they are always chosen first,
+ * and runnable work behind them is never reached — the queue looks healthy while
+ * nothing progresses.
+ *
+ * Two workers running this would both claim the same rows: there is no lease
+ * here yet, so exactly one process may poll.
+ */
+export async function readReady(
+  db: Queryable,
+  limit: number,
+  defNames: readonly string[],
+): Promise<StoredWorkflow[]> {
+  if (defNames.length === 0) return [];
+
+  const { rows } = await db.query<WorkflowRow>(
+    `SELECT ${WORKFLOW_COLUMNS}
+       FROM workflows
+      WHERE status = 'ready' AND run_after <= now() AND def_name = ANY($2)
+      ORDER BY run_after
+      LIMIT $1`,
+    [limit, defNames],
+  );
+
+  return rows.map(toStoredWorkflow);
 }
 
 /**
