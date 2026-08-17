@@ -234,9 +234,8 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
   <a href="#m14">M14 · Dashboard</a>
   <a href="#m15">M15 · Ship</a>
   <div class="grp">Reference</div>
-  <a href="#jd">JD coverage map</a>
   <a href="#backlog">Post-MVP backlog</a>
-  <a href="#ship">Published numbers &amp; bullets</a>
+  <a href="#ship">Published numbers</a>
   <a class="sub" href="#instrument">— what to instrument</a>
 </nav>
 
@@ -244,10 +243,9 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
 
   <header class="doc">
     <h1>Latch <span class="dot">·</span> MVP Build Plan</h1>
-    <p class="desc">The execution companion to the <a href="DESIGN.html">design doc</a>: sixteen chunks, M0–M15,
-      ~99 hours, five weeks. Two pillars, both load-bearing — <b>a durable execution engine for AI agent workflows</b>,
+    <p class="desc">The execution companion to the <a href="DESIGN.html">design doc</a>: sixteen chunks, M0–M15. <b>Rebased 2026-08-07 to a 50-hour budget:</b> M0 and M1 are done, nine chunks and ~54 h remain, and six are deferred to post-MVP. Two pillars, both load-bearing — <b>a durable execution engine for AI agent workflows</b>,
       and <b>a cloud-native AWS deployment that exists from week one and stays deployed</b>. Thin every axis, drop none:
-      every resume filter in the JD map keeps a real, demonstrable artifact. Node + TypeScript + Postgres at the
+      every capability keeps a real, demonstrable artifact. Node + TypeScript + Postgres at the
       correctness core, the core loop framework-free; models behind a port (OpenAI and Bedrock); AWS everywhere the
       correctness path isn't. This is a living document: statuses on the board below flip as chunks land.</p>
     <div class="legend">
@@ -266,28 +264,41 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
       break-it-once step where one applies, and, from M2 onward, in <i>both</i> environments. Statuses update as we build.</p>
     <ol class="roadmap">
       <li><span class="st done">done</span><span class="rl"><b>M0 · Scaffold</b> — monorepo · Compose · migrations · CI · CDK + OIDC <span class="muted">· 4h</span></span></li>
-      <li class="active"><span class="st now">now</span><span class="rl"><b>M1 · Skeleton + event log</b> — SDK→API→worker→PG end to end <span class="muted">· 5h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M2 · Deploy the skeleton</b> — ECS Fargate · RDS · Secrets Manager · CI deploys <span class="muted">· 7h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M3 · Queue, leases, fencing</b> — the two kill demos <span class="muted">· 6h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M4 · Harness v1</b> — seeded schedules · I2 + I3 <span class="muted">· 6h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M5 · Intents + effects</b> — I1, effectively-once <span class="muted">· 5h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M6 · Agent step + envelope + tiers</b> — I4 · cross-provider routing <span class="muted">· 10h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M7 · Scoping + risk + critic</b> — multi-agent gate <span class="muted">· 5h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M8 · HITL + thin DLQ</b> — approvals · escalation · dead letters <span class="muted">· 6h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M9 · Tool adapters</b> — MCP + LangChain behind the port <span class="muted">· 7h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M10 · Case memory</b> — pgvector cross-workflow retrieval <span class="muted">· 4h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M11 · Demo policy + mini-suite</b> — 12 labeled cases, Tier 2/3 tables <span class="muted">· 5h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M12 · Cloud-native surface</b> — SQS ingress · autoscaling · metrics · S3 <span class="muted">· 11h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M13 · Production edge</b> — ALB + custom domain · HTTPS · auto-rollback <span class="muted">· 3h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M14 · Dashboard</b> — trace · list · cost · live over SSE <span class="muted">· 11h</span></span></li>
-      <li><span class="st next">later</span><span class="rl"><b>M15 · Ship</b> — 1,000+ seed sweep · README · npm + GHCR · cloud evidence <span class="muted">· 4h</span></span></li>
+      <li><span class="st done">done</span><span class="rl"><b>M1 · Skeleton + event log</b> — SDK→API→worker→PG end to end <span class="muted">· 5h</span></span></li>
+      <li><span class="st now">build 1</span><span class="rl"><b>M2 · Deploy the skeleton</b> — ECS Fargate · RDS · Secrets Manager · CI deploys <span class="muted">· 7h</span></span></li>
+      <li><span class="st now">build 2</span><span class="rl"><b>M3 · Queue, leases, fencing</b> — the two kill demos <span class="muted">· 6h</span></span></li>
+      <li><span class="st now">build 3</span><span class="rl"><b>M4 · Harness v1</b> — seeded schedules · I2 + I3 <span class="muted">· 6h</span></span></li>
+      <li><span class="st now">build 4</span><span class="rl"><b>M5 · Intents + effects</b> — I1, effectively-once <span class="muted">· 5h</span></span></li>
+      <li><span class="st now">build 5</span><span class="rl"><b>M6 · Agent step + envelope + tiers</b> — I4 · cross-provider routing <span class="muted">· 10h</span></span></li>
+      <li><span class="st now">build 6</span><span class="rl"><b>M7 · Scoping + risk + critic</b> — multi-agent gate <span class="muted">· 5h</span></span></li>
+      <li><span class="st now">build 9</span><span class="rl"><b>M8 · HITL + thin DLQ</b> — approvals · escalation · dead letters <span class="muted">· 6h</span></span></li>
+      <li><span class="st next">post-MVP</span><span class="rl"><b>M9 · Tool adapters</b> — MCP + LangChain behind the port <span class="muted">· 7h</span></span></li>
+      <li><span class="st next">post-MVP</span><span class="rl"><b>M10 · Case memory</b> — pgvector cross-workflow retrieval <span class="muted">· 4h</span></span></li>
+      <li><span class="st next">post-MVP</span><span class="rl"><b>M11 · Demo policy + mini-suite</b> — 12 labeled cases, Tier 2/3 tables <span class="muted">· 5h</span></span></li>
+      <li><span class="st next">post-MVP</span><span class="rl"><b>M12 · Cloud-native surface</b> — SQS ingress · autoscaling · metrics · S3 <span class="muted">· 11h</span></span></li>
+      <li><span class="st next">post-MVP</span><span class="rl"><b>M13 · Production edge</b> — ALB + custom domain · HTTPS · auto-rollback <span class="muted">· 3h</span></span></li>
+      <li><span class="st now">build 7</span><span class="rl"><b>M14 · Dashboard</b> — trace + minimal list <i>(thin: 5h of 11h; list/cost/SSE deferred)</i> <span class="muted">· 5h</span></span></li>
+      <li><span class="st now">build 8</span><span class="rl"><b>M15 · Ship</b> — 1,000+ seed sweep · README · npm + GHCR · cloud evidence <span class="muted">· 4h</span></span></li>
     </ol>
   </section>
+
+  <div class="highlight">
+    <span class="lab">The rebase, in one table — build order ≠ chunk number</span>
+    <p>Chunk IDs are stable (M2 is still M2, and the design doc references them). What changed is the <b>order and the
+      scope</b>. Only one chunk actually moves: <b>M8 goes last</b>, after Ship.</p>
+    <p><b>Build order:</b> M2 (7h) → M3 (6h) → M4 (6h) → M5 (5h) → M6 (10h) → M7 (5h) → <b>M14 thin (5h)</b> →
+      <b>M15 Ship (4h) — shippable at 48h</b> → M8 (6h). <b>~54 h against a 50 h budget</b>, about 11 days at 5 h/day.</p>
+    <p><b>Deferred (36h):</b> M9 adapters · M10 case memory · M11 labeled suite · M12 cloud surface · M13 production
+      edge · the other 6h of M14 (list page, cost page, SSE).</p>
+    <p><b>The dashboard runs before Ship on purpose</b> — it is how the project is presented, so the GIF has to exist
+      before the README is written. After Ship, M8 is the optional tail; the order of sacrifice is
+      M8 → M7 → thin the dashboard to the trace view alone.</p>
+  </div>
 
   <!-- 0 ORIENTATION -->
   <h2 class="section" id="orient"><span class="num">0.</span> What the MVP is — and isn't</h2>
   <p>A re-slicing of the full plan (C0–C20) for shipping fast: <b>thin every axis instead of dropping axes</b>.
-    Every keyword in the JD map keeps a working artifact; what's deferred is depth — the second demo workflow,
+    Every capability keeps a working artifact; what's deferred is depth — the second demo workflow,
     Redis, stall heuristics, the 50-case suite — never coverage. The architecture is unchanged from the design doc;
     every chunk below cites the decisions and deep dives it implements, so nothing here is designed twice.</p>
   <p>Three of the sixteen chunks — <b>M2</b> (deploy the skeleton), <b>M12</b> (the cloud-native surface) and
@@ -308,7 +319,7 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
       tracking), metrics and alarms (CloudWatch), artifacts (S3), secrets (Secrets Manager), provisioning (CDK),
       deploys (GitHub Actions over OIDC). The two pillars are not in tension — the first says <i>where correctness
       lives</i>, the second says <i>everything else is someone else's problem</i>. Pillar 2's chunks are not additive
-      and are not the first thing dropped; the drop order in <a href="#backlog">R2</a> says so explicitly.</p>
+      and are not the first thing dropped; the drop order in <a href="#backlog">R1</a> says so explicitly.</p>
   </div>
 
   <div class="tblwrap"><table>
@@ -415,41 +426,56 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
       harness, for the reason given in <a href="#cloud">part 2</a>.</p>
   </div>
   <div class="diagram">
-    <svg viewBox="0 0 680 142" width="100%" style="font-family:var(--sans);display:block" role="img"
-         aria-label="Five weekly arcs totalling about 99 hours: week one substrate, deployment and proof M0 to M4 at 28 hours; week two agent and guardrails M5 to M7 at 20 hours; week three control plane, adapters, memory and suite M8 to M11 at 22 hours; week four the cloud surface and production edge M12 to M13 at 14 hours; week five dashboard and ship M14 to M15 at 15 hours. Milestones spread across the whole arc: deployed on AWS at M2, cross-host kill demo at M3, invariant I1 green at M5, critic live at M7, all JD filters lit at M10, queue-depth autoscaling at M12, ship at M15.">
-      <text x="119" y="16" text-anchor="end" font-size="9" fill="var(--cyan)" style="font-family:var(--mono)">✦ deployed on AWS (M2)</text>
-      <line x1="123" y1="20" x2="123" y2="58" stroke="var(--cyan)" stroke-width="1.1" stroke-dasharray="3 2"/>
-      <text x="165" y="16" text-anchor="start" font-size="9" fill="var(--red)" style="font-family:var(--mono)">✦ cross-host kill (M3)</text>
-      <line x1="161" y1="20" x2="161" y2="58" stroke="var(--red)" stroke-width="1.1" stroke-dasharray="3 2"/>
-      <text x="438" y="16" text-anchor="middle" font-size="9" fill="var(--amber)" style="font-family:var(--mono)">✦ all JD filters lit (M10)</text>
-      <line x1="438" y1="20" x2="438" y2="58" stroke="var(--amber)" stroke-width="1.1" stroke-dasharray="3 2"/>
-      <text x="660" y="16" text-anchor="end" font-size="9" fill="var(--green)" style="font-family:var(--mono)">✦ ship (M15)</text>
-      <line x1="660" y1="20" x2="660" y2="58" stroke="var(--green)" stroke-width="1.1" stroke-dasharray="3 2"/>
-
-      <text x="270" y="36" text-anchor="end" font-size="9" fill="var(--green)" style="font-family:var(--mono)">✦ I1 green (M5)</text>
-      <line x1="234" y1="40" x2="234" y2="58" stroke="var(--green)" stroke-width="1.1" stroke-dasharray="3 2"/>
-      <text x="325" y="36" text-anchor="middle" font-size="9" fill="var(--violet)" style="font-family:var(--mono)">✦ critic live (M7)</text>
-      <line x1="325" y1="40" x2="325" y2="58" stroke="var(--violet)" stroke-width="1.1" stroke-dasharray="3 2"/>
-      <text x="542" y="36" text-anchor="middle" font-size="9" fill="var(--cyan)" style="font-family:var(--mono)">✦ autoscaling (M12)</text>
-      <line x1="542" y1="40" x2="542" y2="58" stroke="var(--cyan)" stroke-width="1.1" stroke-dasharray="3 2"/>
-
-      <rect x="24" y="58" width="174" height="26" rx="2" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
-      <rect x="203" y="58" width="124" height="26" rx="2" fill="var(--violet-soft)" stroke="var(--violet)"/>
-      <rect x="332" y="58" width="137" height="26" rx="2" fill="var(--amber-soft)" stroke="var(--amber)"/>
-      <rect x="474" y="58" width="87" height="26" rx="2" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
-      <rect x="566" y="58" width="94" height="26" rx="2" fill="var(--green-soft)" stroke="var(--green)"/>
-      <text x="111" y="75" text-anchor="middle" font-size="9" fill="var(--ink)">substrate · deployed · proof</text>
-      <text x="265" y="75" text-anchor="middle" font-size="9" fill="var(--ink)">agent + guardrails</text>
-      <text x="400" y="75" text-anchor="middle" font-size="9" fill="var(--ink)">control plane · memory</text>
-      <text x="517" y="75" text-anchor="middle" font-size="8.5" fill="var(--ink)">cloud surface</text>
-      <text x="613" y="75" text-anchor="middle" font-size="8.5" fill="var(--ink)">dashboard · ship</text>
-      <text x="111" y="99" text-anchor="middle" font-size="8" fill="var(--ink-3)">w1 · M0–M4 · 28h</text>
-      <text x="265" y="99" text-anchor="middle" font-size="8" fill="var(--ink-3)">w2 · M5–M7 · 20h</text>
-      <text x="400" y="99" text-anchor="middle" font-size="8" fill="var(--ink-3)">w3 · M8–M11 · 22h</text>
-      <text x="517" y="99" text-anchor="middle" font-size="8" fill="var(--ink-3)">w4 · M12–M13 · 14h</text>
-      <text x="613" y="99" text-anchor="middle" font-size="8" fill="var(--ink-3)">w5 · M14–M15 · 15h</text>
-      <text x="24" y="120" font-size="9" fill="var(--ink-3)">If the calendar runs out after week 1, the headline already exists — the cross-host kill demo and the invariant</text>
-      <text x="24" y="132" font-size="9" fill="var(--ink-3)">sweep, on a system CI has been deploying to AWS since M2. Weeks 4–5 are surface: real, but the first to thin.</text>
+    <svg viewBox="0 0 680 132" width="100%" style="font-family:var(--sans);display:block" role="img"
+         aria-label="Nine-chunk build order totalling 54 hours: M2 deploy 7h, M3 leases 6h, M4 harness 6h, M5 effects 5h, M6 agent 10h, M7 critic 5h, M14 thin dashboard 5h, M15 ship 4h at 48 cumulative hours which is the shippable point, then M8 human-in-the-loop 6h. M0 and M1 are already done.">
+      <text x="63" y="16" text-anchor="middle" font-size="8.5" fill="var(--cyan)" style="font-family:var(--mono)">✦ on AWS</text>
+      <line x1="63" y1="20" x2="63" y2="58" stroke="var(--cyan)" stroke-width="1.1" stroke-dasharray="3 2"/>
+      <text x="140" y="16" text-anchor="middle" font-size="8.5" fill="var(--red)" style="font-family:var(--mono)">✦ kill demos</text>
+      <line x1="140" y1="20" x2="140" y2="58" stroke="var(--red)" stroke-width="1.1" stroke-dasharray="3 2"/>
+      <text x="364" y="16" text-anchor="middle" font-size="8.5" fill="var(--green)" style="font-family:var(--mono)">✦ all four invariants</text>
+      <line x1="364" y1="20" x2="364" y2="58" stroke="var(--green)" stroke-width="1.1" stroke-dasharray="3 2"/>
+      <text x="512" y="16" text-anchor="middle" font-size="8.5" fill="var(--violet)" style="font-family:var(--mono)">✦ the GIF</text>
+      <line x1="512" y1="20" x2="512" y2="58" stroke="var(--violet)" stroke-width="1.1" stroke-dasharray="3 2"/>
+<rect x="24" y="58" width="79" height="26" rx="2" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
+<rect x="106" y="58" width="68" height="26" rx="2" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
+<rect x="177" y="58" width="68" height="26" rx="2" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
+<rect x="248" y="58" width="57" height="26" rx="2" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
+<rect x="308" y="58" width="113" height="26" rx="2" fill="var(--cyan-soft)" stroke="var(--cyan)"/>
+<rect x="424" y="58" width="57" height="26" rx="2" fill="var(--amber-soft)" stroke="var(--amber)"/>
+<rect x="484" y="58" width="57" height="26" rx="2" fill="var(--violet-soft)" stroke="var(--violet)"/>
+<rect x="544" y="58" width="45" height="26" rx="2" fill="var(--green-soft)" stroke="var(--green)" stroke-width="2"/>
+<rect x="592" y="58" width="68" height="26" rx="2" fill="var(--amber-soft)" stroke="var(--amber)"/>
+<text x="64" y="75" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">M2</text>
+<text x="140" y="75" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">M3</text>
+<text x="211" y="75" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">M4</text>
+<text x="276" y="75" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">M5</text>
+<text x="364" y="75" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">M6</text>
+<text x="452" y="75" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">M7</text>
+<text x="512" y="75" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">M14</text>
+<text x="566" y="75" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">M15</text>
+<text x="626" y="75" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">M8</text>
+<text x="64" y="97" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">7h</text>
+<text x="140" y="97" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">6h</text>
+<text x="211" y="97" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">6h</text>
+<text x="276" y="97" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">5h</text>
+<text x="364" y="97" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">10h</text>
+<text x="452" y="97" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">5h</text>
+<text x="512" y="97" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">5h</text>
+<text x="566" y="97" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">4h</text>
+<text x="626" y="97" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">6h</text>
+<text x="103" y="50" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">7</text>
+<text x="174" y="50" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">13</text>
+<text x="245" y="50" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">19</text>
+<text x="305" y="50" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">24</text>
+<text x="421" y="50" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">34</text>
+<text x="481" y="50" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">39</text>
+<text x="541" y="50" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">44</text>
+<text x="589" y="50" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">48</text>
+<text x="660" y="50" text-anchor="middle" font-size="7.5" fill="var(--ink-3)">54</text>
+      <line x1="589" y1="52" x2="589" y2="106" stroke="var(--green)" stroke-width="1.4"/>
+      <text x="585" y="118" text-anchor="end" font-size="9" font-weight="700" fill="var(--green)" style="font-family:var(--mono)">48h — shippable from here</text>
+      <text x="595" y="118" font-size="8" fill="var(--ink-3)">M8 is the optional tail</text>
+      <text x="24" y="130" font-size="8" fill="var(--ink-3)">54h against a 50h budget · ~11 days at 5h/day · M0 and M1 done · 36h deferred to post-MVP</text>
     </svg>
   </div>
 
@@ -482,14 +508,14 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
       <div class="opt"><span class="name">Rebuild AWS-native</span> — Step Functions for orchestration, SQS for the queue, DynamoDB for the log, Lambda for workers. Maximum managed-service surface and the most keywords per hour of work. It also dismantles every load-bearing argument in the design doc, one service at a time (enumerated below).</div>
       <div class="opt"><span class="name">Lift-and-shift onto EC2, or EKS</span> — run the Compose stack on instances, or on a Kubernetes cluster, and change nothing. Cheapest to think about, but it proves only that Docker runs on Linux; there is no managed-service signal in it, and EKS adds ~$73/month for a control plane nobody in this project needs.</div>
       <div class="opt win"><span class="name">Managed services everywhere except the correctness path</span> — ECS Fargate (compute), RDS Postgres with pgvector (the one stateful system, unchanged in role), Secrets Manager + IAM task roles (credentials), CloudWatch (metrics, alarms, the autoscaling signal), S3 (large artifacts by reference), Bedrock (a second model provider behind the existing port), CDK in TypeScript (provisioning), GitHub Actions over OIDC (deploys, no long-lived keys). CDK rather than Terraform for one reason worth stating: it is the same language as the engine, so <code>cdk synth</code> is a unit-testable artifact in the same test run rather than a second toolchain.</div>
-      <div class="why"><b>We buy everything except the invariants.</b> The rejections below are the substance of this decision — each one names the specific decision or invariant it would have cost, and none of them is a matter of taste. The interview answer this earns is a sentence that survives follow-up questions: <i>managed services everywhere except the correctness path, and those were deliberate rejections, not oversights.</i> This decision extends the design doc; it supersedes nothing. Where it touches D17 (model routing), the extension is spelled out in <a href="#m6">M6</a>.</div>
+      <div class="why"><b>We buy everything except the invariants.</b> The rejections below are the substance of this decision — each one names the specific decision or invariant it would have cost, and none of them is a matter of taste. The position this earns is one that survives follow-up questions: <i>managed services everywhere except the correctness path, and those were deliberate rejections, not oversights.</i> This decision extends the design doc; it supersedes nothing. Where it touches D17 (model routing), the extension is spelled out in <a href="#m6">M6</a>.</div>
     </div>
   </div>
 
   <div class="tblwrap"><table>
     <thead><tr><th>Rejected</th><th>Why — the specific cost, not a preference</th></tr></thead>
     <tbody>
-      <tr><td class="force">Step Functions</td><td>It <i>is</i> durable execution — checkpointed state machines, retries, human-approval callbacks. Adopting it means AWS already built the exact thing this project exists to demonstrate, and the thesis evaporates along with D1: there is nothing left to record-don't-replay. The résumé line degrades from "built a durable execution engine" to "configured one." It is also the interview question most worth having a real opinion about, and having an opinion requires having built the alternative.</td></tr>
+      <tr><td class="force">Step Functions</td><td>It <i>is</i> durable execution — checkpointed state machines, retries, human-approval callbacks. Adopting it means AWS already built the exact thing this project exists to demonstrate, and the thesis evaporates along with D1: there is nothing left to record-don't-replay. The project's central claim degrades from "built a durable execution engine" to "configured one."</td></tr>
       <tr><td class="force">SQS <i>as the workflow queue</i><br><span class="note" style="font-size:.85em">(adopted as the <b>ingress buffer</b> — M12)</span></td><td>As the workflow queue it reintroduces the exact dual-write problem <b>D2</b> rejected: enqueue and state transition would span two systems, so I1 and I2 would rest on an outbox pattern instead of one transaction. The queue there is not a throughput choice — it is where the correctness argument physically lives.<br><br><b>The rejection is directional, and only one direction is unsafe.</b> Upstream of that transaction SQS is adopted: <a href="#m12">M12</a> buffers arriving work on a queue and ingests it with one Postgres commit, so a redelivered message dedupes on the idempotency key while a lost publish could not have been recovered at all. It never holds workflow state and no worker reads from it.</td></tr>
       <tr><td class="force">DynamoDB as the event log</td><td>Undermines the single-transactional-store argument the whole correctness story is built on (<b>D2</b>, <b>D8</b>): the log, its same-transaction projection, the queue row and the effects table would no longer commit together, and "the projection cannot drift from the log" becomes a hope.</td></tr>
       <tr><td class="force">Lambda workers</td><td>A 15-minute execution cap and cold starts are incompatible with long-lived leases and 5-second heartbeats (<b>D5</b>, <b>D13</b>). A worker that can be frozen or evicted mid-step is a lease that lies, which is the one thing §5 is built to prevent.</td></tr>
@@ -511,10 +537,10 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
   <div class="decision">
     <div class="dh"><span class="tag">Decision 25</span> The production edge — what earns a standing monthly cost?</div>
     <div class="body">
-      <div class="opt"><span class="name">Keep the M2 minimum</span> — a public IP, no ALB, single-AZ, rolling deploys with no rollback. Cheapest, and enough to prove the engine runs on managed infrastructure. But the demo has no shareable URL, no TLS, and the résumé cannot honestly say load balancing, HA or zero-downtime deploys.</div>
+      <div class="opt"><span class="name">Keep the M2 minimum</span> — a public IP, no ALB, single-AZ, rolling deploys with no rollback. Cheapest, and enough to prove the engine runs on managed infrastructure. But the demo has no shareable URL, no TLS, and there is no honest claim to load balancing or zero-downtime deploys.</div>
       <div class="opt"><span class="name">A full production posture</span> — CodeDeploy blue/green with canary traffic shifting, multi-region, tuned WAF rules, a status page. Genuinely impressive, and roughly 3–4× the hours. In a portfolio context it demonstrates very little the basic form doesn't, because there is no real traffic for any of it to survive.</div>
       <div class="opt win"><span class="name">Only what earns its standing cost</span> — ALB + ACM + Route 53, and ECS rolling deploys with the deployment circuit breaker set to roll back. <b>Single-AZ, and no WAF</b>, deliberately.</div>
-      <div class="why"><b>The test is demonstration per dollar per hour, not keyword count.</b> This decision <b>reverses M2's "no load balancer"</b> — deliberately, and only once the ALB has three jobs at once (TLS termination, a stable hostname, and a health-checked rollback target) rather than one. <b>Automatic rollback</b> earns its place outright: paired with a deploy shipped mid-workflow it turns NFR 6's claim into a recording, for two lines of CDK.<br><br><b>Multi-AZ and WAF were considered and declined.</b> Multi-AZ roughly doubles the database line and drops it out of free-tier eligibility, to buy a claim — "highly available" — nothing else in this project makes. WAF bills a standing monthly fee for a rule set that, with no untrusted traffic, has nothing to block; it would demonstrate configuration rather than defence. Each is about an hour and one CDK change if ever wanted — and <b>declining them on a stated cost basis is a better interview answer than having configured them without a reason.</b> The remaining cost is in <a href="#backlog">R2</a>, not hidden.</div>
+      <div class="why"><b>The test is demonstration per dollar per hour, not keyword count.</b> This decision <b>reverses M2's "no load balancer"</b> — deliberately, and only once the ALB has three jobs at once (TLS termination, a stable hostname, and a health-checked rollback target) rather than one. <b>Automatic rollback</b> earns its place outright: paired with a deploy shipped mid-workflow it turns NFR 6's claim into a recording, for two lines of CDK.<br><br><b>Multi-AZ and WAF were considered and declined.</b> Multi-AZ roughly doubles the database line and drops it out of free-tier eligibility, to buy a claim — "highly available" — nothing else in this project makes. WAF bills a standing monthly fee for a rule set that, with no untrusted traffic, has nothing to block; it would demonstrate configuration rather than defence. Each is about an hour and one CDK change if ever wanted — and <b>declining them on a stated cost basis is a better engineering position than configuring them without a reason.</b> The remaining cost is in <a href="#backlog">R1</a>, not hidden.</div>
     </div>
   </div>
 
@@ -524,7 +550,7 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
       and a custom domain. It does not have Multi-AZ, a WAF, canary traffic shifting or multi-region failover — each
       declined on a stated cost basis (D25) rather than overlooked — and above all it has
       <b>no real traffic</b>. Every one of those is a cost decision with a price attached
-      (<a href="#backlog">R2</a>), which makes each a sentence in an interview rather than a surprise in one.</p>
+      (<a href="#backlog">R1</a>), which makes each a stated trade-off rather than an omission.</p>
     <p>What it does prove is not small: the system runs on infrastructure it never ran on locally, provisioned from
       code, deployed by CI with no human touching a console, holding secrets it never sees, under IAM roles that bound
       what it can reach — and it survives, mid-workflow, both a host being killed (M3) and its database failing over
@@ -547,7 +573,7 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
       Empty stacks: network, data, services. They synthesize; they deploy nothing yet.</li>
     <li><b>GitHub OIDC to AWS</b> — an identity provider and a deploy role whose trust policy is scoped to this
       repository. CI assumes a role; there is no access key in a secret store, and there never will be. This is four
-      lines of CDK and it is the difference between "has AWS on the résumé" and "has never leaked a credential."</li>
+      lines of CDK and it is the difference between deploying to AWS and never having a long-lived credential to leak.</li>
   </ul>
   <p class="note">Doing OIDC now rather than at M2 is deliberate: credentials are the thing everyone retrofits, and
     retrofitting them means a long-lived key existed in the meantime.</p>
@@ -598,7 +624,7 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
       (ECR api + dkr, Secrets Manager, CloudWatch Logs, Bedrock) run about $36/month against the NAT's ~$33, so
       endpoints become the better answer only once Bedrock is the <i>only</i> provider. At ~$0.045/hour the NAT is the
       largest standing line in the stack, which is precisely why <code>cdk destroy</code> between work sessions is part
-      of the routine rather than an afterthought (<a href="#backlog">R2</a>).</li>
+      of the routine rather than an afterthought (<a href="#backlog">R1</a>).</li>
     <li><b>No load balancer — <i>yet</i>.</b> ~$16/month standing buys nothing while the only client is one developer
       and there is no domain to point at it. The API task takes a public IP on a public subnet with its security group
       scoped to one address. An ALB arrives at <a href="#m13">M13</a>, when TLS, a custom domain and a
@@ -625,7 +651,7 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
     that survives being deleted is infrastructure; anything else is a console session with good documentation.</p></div>
 
   <h2 class="section" id="m3"><span class="num">M3.</span> Queue, leases, fencing <span class="exbadge">6h · C3</span> <span class="exbadge" style="color:var(--red);border-color:var(--red)">the kill demos</span></h2>
-  <p class="note">Implements §5 wholesale: the three SQL statements are the entire mechanism. JD: <b>async / concurrent / queueing design</b> (the Xanadu hard requirement).</p>
+  <p class="note">Implements §5 wholesale: the three SQL statements are the entire mechanism. Covers: <b>async / concurrent / queueing design</b>.</p>
   <pre><b>-- the whole chunk in three statements (§5)</b>
 CLAIM:     UPDATE … WHERE id = (SELECT … WHERE ready OR lease expired
            ORDER BY run_after LIMIT 1 <b>FOR UPDATE SKIP LOCKED</b>)
@@ -654,7 +680,7 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
   <p class="note" style="border-left:3px solid var(--amber);padding-left:.7rem"><b>→ RESULTS.md:</b> <b>takeover latency, median and p95</b>, from worker death to another worker executing — measured <i>separately</i> for the local kill and the Fargate cross-host kill. NFR 5 targets under 20 s; publish the actual, and publish both numbers. The Fargate figure will be worse, and the gap is the honest part.</p>
 
   <h2 class="section" id="m4"><span class="num">M4.</span> Harness v1 <span class="exbadge">6h · C4 + C6 thin</span> <span class="exbadge" style="color:var(--green);border-color:var(--green)">the eval spine</span> <span class="exbadge">local only</span></h2>
-  <p class="note">Implements §9: seeded schedules, logical workers, invariant sweep. JD: <b>evaluation pipelines</b> — the single strongest signal in the map — plus benchmarking and regression suites.</p>
+  <p class="note">Implements §9: seeded schedules, logical workers, invariant sweep. Covers: <b>evaluation pipelines</b>, benchmarking and regression suites.</p>
   <ul>
     <li>Logical workers (async tasks in one process), <b>pure-rand</b> seeded PRNG, injected clock; named crash points at every §5/§6 boundary; lease-expiry and tool-failure injection.</li>
     <li>Invariants as pure functions over the finished log: <b>I2</b> (every start reaches terminal/suspended) and <b>I3</b> (zero fenced-write violations, no overlapping lease intervals).</li>
@@ -688,7 +714,7 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
   <p class="note" style="border-left:3px solid var(--amber);padding-left:.7rem"><b>→ RESULTS.md:</b> the count of <b>side-effecting operations executed across the sweep</b> — the denominator that turns "zero duplicates" into "zero duplicates across N operations". Break-it-once produces the first entry in the bugs-caught log; write it down the day it happens.</p>
 
   <h2 class="section" id="m6"><span class="num">M6.</span> Agent step + envelope + tiers <span class="exbadge">10h · C7 + C9 + D17 + D23</span> <span class="exbadge" style="color:var(--green);border-color:var(--green)">I4</span> <span class="exbadge" style="color:var(--violet);border-color:var(--violet)">cross-provider</span></h2>
-  <p class="note">Implements §7: decision recording, reserve-before-spend, routing. JD: <b>state management for agent workflows · intelligent multi-model routing · cost · token optimization</b>.</p>
+  <p class="note">Implements §7: decision recording, reserve-before-spend, routing. Covers: <b>state management for agent workflows · multi-model routing · cost · token optimization</b>.</p>
   <ul>
     <li><code>ModelClient</code> port with <b>three</b> drivers: <b>OpenAI</b> (structured decisions via the SDK's
       zod-based structured-output helper), <b>AWS Bedrock</b> (the same structured-decision contract, authenticated by
@@ -711,7 +737,7 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
       <i>names</i>. A tier was a model; a tier is now a <b>(provider, model) pair</b>. <code>small</code> may be an
       OpenAI mini model and <code>large</code> a Bedrock-hosted flagship, or the reverse, or both on one provider —
       the definition declares the tier, configuration maps the tier to a provider.</p>
-    <p>That is what the JD map means by intelligent multi-model routing: the choice is made on <b>measured cost and
+    <p>That is what intelligent multi-model routing means here: the choice is made on <b>measured cost and
       latency across providers</b>, from numbers this engine already records per decision, rather than from one
       vendor's catalogue. And because the mapping is configuration, the comparison is a config change and a suite
       run — which is exactly the experiment M11 publishes.</p>
@@ -722,7 +748,7 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
       IAM-authenticated model access works with no key anywhere in the system. It does <b>not</b> prove Bedrock is
       cheaper or better. The cost delta is whatever the routing suite measures, and it gets published in whichever
       direction it lands; a number that came out the wrong way is still a number, and pretending otherwise would
-      undermine every other number in <a href="#ship">R3</a>.</p>
+      undermine every other number in <a href="#ship">R2</a>.</p>
   </div>
   <p class="note">The ticket demo gains: a model chooses its investigation path — on whichever provider is the right
     price for that phase — and cannot outspend its envelope.</p>
@@ -731,10 +757,10 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
     Seeded runaway halts at the ceiling; I4 holds at every prefix across the sweep. And the routing suite runs
     <b>with a Bedrock tier</b>, reporting the measured cost delta against the OpenAI-only baseline. The fake driver is
     untouched, so the seed sweep is byte-identical to M5's.</p></div>
-  <p class="note" style="border-left:3px solid var(--amber);padding-left:.7rem"><b>→ RESULTS.md:</b> the <b>counted</b> zero-additional-model-calls assertion after a crash-resume — the crispest proof of record-don't-replay in the project, and the best interview fact it produces. Plus <b>$ per workflow</b> in model spend.</p>
+  <p class="note" style="border-left:3px solid var(--amber);padding-left:.7rem"><b>→ RESULTS.md:</b> the <b>counted</b> zero-additional-model-calls assertion after a crash-resume — the crispest proof of record-don't-replay in the project, and the crispest fact it produces. Plus <b>$ per workflow</b> in model spend.</p>
 
   <h2 class="section" id="m7"><span class="num">M7.</span> Scoping, risk classes, critic <span class="exbadge">5h · C8 + C18</span> <span class="exbadge" style="color:var(--violet);border-color:var(--violet)">multi-agent</span></h2>
-  <p class="note">Implements D7 (structural scoping), D9 (risk → approval policy map), D18 (proposer/critic). JD: <b>multi-agent orchestration · guardrails · policy enforcement · access control</b> — the first of the JD map's four canonical pillars closes here.</p>
+  <p class="note">Implements D7 (structural scoping), D9 (risk → approval policy map), D18 (proposer/critic). Covers: <b>multi-agent orchestration · guardrails · policy enforcement · access control</b>.</p>
   <ul>
     <li>Dispatcher resolves every tool call against the phase's <code>tools</code> array — a name not in the array raises a structured error event <i>before any intent exists</i>. Structural, not prompt-based.</li>
     <li>Every tool declares <code>read | write | irreversible</code>; the envelope maps class → rule (auto / approve over $threshold / always).</li>
@@ -748,7 +774,7 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
   <!-- ===================== WEEK 3 ===================== -->
 
   <h2 class="section" id="m8"><span class="num">M8.</span> HITL + thin DLQ <span class="exbadge">6h · C11 + C12 thin</span></h2>
-  <p class="note">Implements §8: zero-compute suspension, timers as rows, error taxonomy, dead-lettering (D19, D20). JD: <b>human-in-the-loop · reliability · graceful recovery · unattended operation</b>.</p>
+  <p class="note">Implements §8: zero-compute suspension, timers as rows, error taxonomy, dead-lettering (D19, D20). Covers: <b>human-in-the-loop · reliability · graceful recovery · unattended operation</b>.</p>
   <ul>
     <li>Suspension = <code>approvals</code> row (with <code>due_at</code>) + <code>suspended</code> event + released lease. Nothing holds a process; resume is just a claim. On Fargate this is worth stating plainly: a suspended workflow costs nothing because no task is holding it — the worker service can scale to its floor while a human takes a week.</li>
     <li><code>POST /approvals/:id/approve|deny</code>; one-hop escalation when <code>due_at</code> passes (chains are post-MVP). The timer stays a <code>due_at</code> row claimed by the same query as everything else — this is the EventBridge Scheduler rejection in D23, and it is the reason this chunk needs no AWS service at all.</li>
@@ -761,7 +787,9 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
     which side effects already committed.</p></div>
 
   <h2 class="section" id="m9"><span class="num">M9.</span> Tool-ecosystem adapters <span class="exbadge">7h · C19</span></h2>
-  <p class="note">JD: <b>tool-use integration · MCP servers · LangChain</b> — the third canonical pillar, reinforcing ClubMate's five shipped MCP servers. The boundary from the design doc holds: LangChain supplies <i>tools</i>, never orchestration.</p>
+  <div class="honest"><span class="lab">Deferred to post-MVP — rebased 2026-08-07</span><p>Not in the 50-hour plan. The design below stands unchanged; this is a scheduling decision, and the seams for it already exist. See the build-order table at the top.</p></div>
+  
+  <p class="note">Covers: <b>tool-use integration · MCP servers · LangChain</b>. The boundary from the design doc holds: LangChain supplies <i>tools</i>, never orchestration.</p>
   <ul>
     <li><b>MCP client</b> (official <code>@modelcontextprotocol/sdk</code>, stdio transport) behind <code>ToolExecutor</code>; a ~50-line demo MCP server exposes one ticket tool. Discovered tools register with declared risk classes; idempotency keys pass through (§6 external boundary applies unchanged).</li>
     <li><b>LangChain adapter</b>: wraps any <code>StructuredTool</code> into the registry — same risk-class declaration, same key pass-through, same scoping enforcement.</li>
@@ -774,7 +802,9 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
     an out-of-scope adapted tool is rejected exactly like a native one; the sweep is byte-identical to before this chunk.</p></div>
 
   <h2 class="section" id="m10"><span class="num">M10.</span> Cross-workflow case memory <span class="exbadge">4h · C20 thin</span></h2>
-  <p class="note">JD: <b>long-term memory · vector retrieval · embeddings</b> — the fourth canonical pillar closes here (reinforcing ClubMate's ChromaDB RAG). Advisory context only — never invariant-bearing.</p>
+  <div class="honest"><span class="lab">Deferred to post-MVP — rebased 2026-08-07</span><p>Not in the 50-hour plan. The design below stands unchanged; this is a scheduling decision, and the seams for it already exist. See the build-order table at the top.</p></div>
+  
+  <p class="note">Covers: <b>long-term memory · vector retrieval · embeddings</b>. Advisory context only — never invariant-bearing.</p>
   <ul>
     <li>On completion, a case summary is embedded and stored in a pgvector column on a <code>cases</code> table — same Postgres, no new stateful system, and <b>no infrastructure change</b>: the extension was enabled when RDS was created at M2, which is what "pgvector from day one" was buying.</li>
     <li>The investigation phase retrieves this tenant's top-k prior resolved cases into the agent's context, marked advisory.</li>
@@ -782,29 +812,33 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
     <li>The harness pairs it with a <b>fake embedder</b> — deterministic vectors, deterministic seeds.</li>
   </ul>
   <p class="note">The ticket demo gains: it remembers how this tenant's similar tickets were resolved.
-    <b>Every JD filter is now lit ✦</b> — including the cloud row, which has been lit since M2; M12 deepens it rather than opening it.</p>
+    <b>Every capability axis now has a working artifact ✦</b> — including the cloud one, which has since M2; M12 deepens it rather than opening it.</p>
   <div class="locked"><h3>Gate M10</h3>
     <p>Prior-case context visible in the trace; retrieval failure degrades gracefully (context omitted, workflow
     unaffected); the full sweep is still green and still deterministic.</p></div>
 
   <h2 class="section" id="m11"><span class="num">M11.</span> Demo policy + the mini-suite <span class="exbadge">5h · C13 thin</span></h2>
-  <p class="note">JD: <b>evaluation</b> again — tool-usage accuracy, workflow completion, escalation precision, cost, regression suite — the Tier 2/3 numbers.</p>
+  <div class="honest"><span class="lab">Deferred to post-MVP — rebased 2026-08-07</span><p>Not in the 50-hour plan. The design below stands unchanged; this is a scheduling decision, and the seams for it already exist. See the build-order table at the top.</p></div>
+  
+  <p class="note">Covers: <b>evaluation</b> again — tool-usage accuracy, workflow completion, escalation precision, cost, regression suite — the Tier 2/3 numbers.</p>
   <ul>
     <li>The ticket workflow gets its real prose policy (refund rules, thresholds, tone) and non-idempotent remedies.</li>
     <li><b>12 labeled scenarios</b>, each with expected outcome, expected escalations, expected critic verdicts. "Completed" is checked as <i>correctly</i> completed — outcome equivalence, not termination.</li>
-    <li>The suite runner emits the Tier 2/3 mini-tables per commit: escalation precision, tool-use accuracy, critic catch / false-block rate, and <b>routing savings across three configurations</b> — all-flagship, OpenAI tiers, and cross-provider tiers with Bedrock on the cheap phase. Three columns, one table, and the cost claim in <a href="#ship">R3</a> becomes a measurement rather than an assertion.</li>
+    <li>The suite runner emits the Tier 2/3 mini-tables per commit: escalation precision, tool-use accuracy, critic catch / false-block rate, and <b>routing savings across three configurations</b> — all-flagship, OpenAI tiers, and cross-provider tiers with Bedrock on the cheap phase. Three columns, one table, and the cost claim in <a href="#ship">R2</a> becomes a measurement rather than an assertion.</li>
   </ul>
   <div class="locked"><h3>Gate M11</h3>
     <p>The suite runs in CI and produces the tables; flipping routing off changes cost and nothing else; swapping the
     small tier's provider changes cost and nothing else.</p></div>
-  <p class="note" style="border-left:3px solid var(--amber);padding-left:.7rem"><b>→ RESULTS.md:</b> <b>critic catch rate and false-block rate</b> against the suite's planted bad decisions, plus escalation precision and tool-use accuracy. This is the control plane's only quantitative axis — without it, that résumé bullet is a feature list. Record routing savings <b>with the suite held identical</b> across all three configurations; if the suite differs between runs the percentage is not comparable.</p>
+  <p class="note" style="border-left:3px solid var(--amber);padding-left:.7rem"><b>→ RESULTS.md:</b> <b>critic catch rate and false-block rate</b> against the suite's planted bad decisions, plus escalation precision and tool-use accuracy. This is the control plane's only quantitative axis — without it, the guardrail claim is a feature list. Record routing savings <b>with the suite held identical</b> across all three configurations; if the suite differs between runs the percentage is not comparable.</p>
 
   <!-- ===================== WEEK 4 ===================== -->
 
   <h2 class="section" id="m12"><span class="num">M12.</span> Cloud-native surface <span class="exbadge">11h · new — no C-chunk ancestor</span> <span class="exbadge" style="color:var(--cyan);border-color:var(--cyan)">autoscaling</span></h2>
+  <div class="honest"><span class="lab">Deferred to post-MVP — rebased 2026-08-07</span><p>Not in the 50-hour plan. The design below stands unchanged; this is a scheduling decision, and the seams for it already exist. See the build-order table at the top.</p></div>
+  
   <p class="note">Implements the second half of D23. The S3 piece is not new scope: it is the honest implementation of
     the guardrail §4 already specifies — <i>state size cap enforced at settle; large artifacts stored by reference</i>.
-    JD: <b>cloud infrastructure · message queues · autoscaling · observability · cost</b>.</p>
+    Covers: <b>cloud infrastructure · message queues · autoscaling · observability · cost</b>.</p>
   <ul>
     <li><b>SQS as the ingress buffer.</b> Workflow starts arrive on an SQS queue; a small ingest consumer reads a
       batch and performs <i>the same single Postgres transaction</i> <code>POST /workflows</code> already performs,
@@ -847,7 +881,7 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
     <p>500 workflows against a <code>t4g.micro</code> and ten Fargate tasks is an <b>autoscaling demonstration</b>, not
       a benchmark. The claim being made is "the scaling signal is the correct one and the control loop closes" —
       metric published, policy triggered, tasks placed, queue drained, tasks removed. It is not "this handles
-      production traffic," and <a href="#ship">R3</a> publishes it in exactly those words. The throughput number that
+      production traffic," and <a href="#ship">R2</a> publishes it in exactly those words. The throughput number that
       would justify a stronger claim needs a cluster nobody is paying for this month.</p>
     <p><b>And the ingress buffer solves a problem this project does not yet have.</b> With one demo user, nothing is
       overwhelming the API. It earns its place on two narrower grounds, both worth stating plainly rather than
@@ -867,11 +901,13 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
     loop closed in a minute or in ten. Also record <b>infrastructure cost per workflow</b>, kept separate from model cost.</p>
 
   <h2 class="section" id="m13"><span class="num">M13.</span> Production edge <span class="exbadge">3h · new — no C-chunk ancestor</span> <span class="exbadge" style="color:var(--cyan);border-color:var(--cyan)">a real URL</span></h2>
-  <p class="note">Implements <b>D25</b>, which reverses M2's "no load balancer" line deliberately. JD: <b>cloud infrastructure · networking · TLS · zero-downtime deploys</b>. Deliberately the <i>basic</i> form of each — see the honesty box.</p>
+  <div class="honest"><span class="lab">Deferred to post-MVP — rebased 2026-08-07</span><p>Not in the 50-hour plan. The design below stands unchanged; this is a scheduling decision, and the seams for it already exist. See the build-order table at the top.</p></div>
+  
+  <p class="note">Implements <b>D25</b>, which reverses M2's "no load balancer" line deliberately. Covers: <b>cloud infrastructure · networking · TLS · zero-downtime deploys</b>. Deliberately the <i>basic</i> form of each — see the honesty box.</p>
   <ul>
     <li><b>ALB + ACM + a custom domain.</b> A target group in front of the API service, an ACM certificate validated by DNS, and a Route 53 alias record. The demo stops being <code>http://&lt;public-ip&gt;:3000</code> and becomes an HTTPS URL you can put in a README — which is most of the point.</li>
     <li><b>Zero-downtime deploys with automatic rollback.</b> ECS rolling deployment with the <b>deployment circuit breaker</b> enabled (<code>rollback: true</code>): a task that fails its health check rolls the service back to the previous task definition on its own. Two lines of CDK, no CodeDeploy, no second target group. Paired with a deploy run <i>while a workflow is in flight</i>, this films NFR 6 — the mid-run-deploy story that record-don't-replay makes free.</li>
-    <li><b>A static holding page.</b> The domain points at a tiny S3-hosted page whenever the stack is torn down — the GIF, the numbers, and the one command that redeploys the live version. A résumé link that 404s is worse than no link.</li>
+    <li><b>A static holding page.</b> The domain points at a tiny S3-hosted page whenever the stack is torn down — the GIF, the numbers, and the one command that redeploys the live version. A published link that 404s is worse than no link.</li>
   </ul>
   <div class="honest">
     <span class="lab">Honesty box · what this chunk is, and what got cut out of it</span>
@@ -882,8 +918,8 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
       <b>Multi-AZ RDS</b> roughly doubles the database line <i>and</i> drops it out of free-tier eligibility, to buy a
       claim — "highly available" — this project does not otherwise make. <b>WAF</b> bills ~$5/month for a web ACL that,
       with no untrusted traffic, has nothing to block: it would demonstrate configuration rather than defence. Both are
-      an hour and one CDK change if they are ever wanted; neither is claimed in <a href="#ship">R3</a>.</p>
-    <p>What survives buys three résumé lines for two hours and about three cents an hour: <b>ALB</b>, <b>ACM + Route 53
+      an hour and one CDK change if they are ever wanted; neither is claimed in <a href="#ship">R2</a>.</p>
+    <p>What survives costs two hours and about three cents an hour: <b>ALB</b>, <b>ACM + Route 53
       (TLS at a custom domain)</b>, and <b>zero-downtime deploys with automatic rollback</b> — each backed by
       infrastructure that ran. What it cannot say is "operated a highly available production system under load."</p>
   </div>
@@ -895,7 +931,9 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
     <code>cdk destroy</code> → the domain serves the holding page, not an error.</p></div>
 
   <h2 class="section" id="m14"><span class="num">M14.</span> Dashboard — trace, list, cost, live <span class="exbadge">11h · C14 + two COULD-tier items</span></h2>
-  <p class="note">Implements C14 in full, and promotes two COULD-tier items from §1 into the MVP: a live-updating dashboard and a cost page. Implements <b>D24</b>. JD: <b>observability &amp; traceability</b> — built from the event log, not bought: the log <i>is</i> the trace (know Langfuse for interviews; Latch's answer is that it generates this data natively).</p>
+  <div class="honest"><span class="lab">Trimmed to 5h — rebased 2026-08-07</span><p>The MVP builds the <b>trace view plus a minimal list</b>, with 2-second polling. The <b>list page, cost page and SSE (D24) are deferred</b> — the other 6h. It runs <i>before</i> M15 so the GIF exists before the README is written.</p></div>
+  
+  <p class="note">Implements C14 in full, and promotes two COULD-tier items from §1 into the MVP: a live-updating dashboard and a cost page. Implements <b>D24</b>. Covers: <b>observability &amp; traceability</b> — built from the event log, not bought: the log <i>is</i> the trace (Langfuse is the bought equivalent; Latch generates this data natively).</p>
   <ul>
     <li><b>Trace</b> — the per-step trace of one workflow: decisions with provider/model/tokens/$, intents, outcomes, critic verdicts, suspensions; plus the approval queue with approve/deny buttons.</li>
     <li><b>List</b> — <code>GET /workflows?status=&amp;def=</code>: status, definition, phase, step, spend-so-far, age. This is nearly free, and the reason is worth noticing: the projected row (D8) already carries every one of those columns. <b>A list page that had to fold event logs would be an argument against D8; one that doesn't is an argument for it.</b></li>
@@ -944,36 +982,8 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
     dependency: a reviewer who wants to re-run it has the CDK app and can deploy it into their own account with one
     command, but nothing on the reproduction path requires them to. Ship it.</p></div>
 
-  <!-- JD COVERAGE -->
-  <h2 class="section" id="jd"><span class="num">R1.</span> JD coverage map — every signal, its chunk</h2>
-  <p class="note">The consolidated 16-JD map, reconciled. <b>Bold</b> = one of the four canonical pillars of that map.
-    The <b>Cloud / AWS</b> row is this project's second pillar (<a href="#cloud">part 2</a>) and is tracked separately,
-    because the JD map's four pillars are about agent capability and predate it. "Reinforced by" names where the claim
-    already has shipped backing outside Latch.</p>
-  <div class="tblwrap"><table>
-    <thead><tr><th>JD signal</th><th>Delivered by</th><th>Notes</th></tr></thead>
-    <tbody>
-      <tr><td><b>Multi-agent orchestration</b></td><td class="force">M7 proposer/critic gate (D18); catch / false-block measured in M11</td><td>Honestly named: the minimal multi-agent pattern, not a swarm. Proposer and critic may sit on different providers (M6)</td></tr>
-      <tr><td><b>State management, long-running workflows</b></td><td class="force">M1–M8 — event log, leases, resume-from-facts, suspension</td><td>The entire project</td></tr>
-      <tr><td><b>Tool use + MCP servers</b></td><td class="force">M5 <code>ToolExecutor</code>; M9 MCP + LangChain adapters</td><td>Reinforced by ClubMate's 5 MCP servers / ~21 tools; the MCP server ships as a task sidecar in the deployed stack</td></tr>
-      <tr><td><b>Long-term memory</b></td><td class="force">M10 cross-workflow pgvector memory</td><td>Reinforced by ClubMate's ChromaDB RAG</td></tr>
-      <tr><td>Cloud / AWS (pillar 2)</td><td class="force">M0 CDK app + GitHub OIDC; M2 ECS Fargate + RDS + Secrets Manager + IAM task roles, CI-deployed on merge; M12 SQS ingress buffer + CloudWatch custom metrics + queue-depth autoscaling + S3 artifacts; <b>M13 ALB + ACM + Route 53 (HTTPS at a custom domain), zero-downtime deploys with automatic rollback</b></td><td>Backed by a deployment that ran, with published evidence (M15) — not a keyword. The rejected services and their reasons are D23, which is the half of this row that survives a follow-up question; D25 states which M13 items are basic-by-choice</td></tr>
-      <tr><td>Deployment safety</td><td class="force">M13 ECS deployment circuit breaker with automatic rollback, exercised by a <b>deploy shipped mid-workflow</b>; M3 cross-host lease takeover</td><td>Rollback plus a mid-run deploy is NFR 6 <i>filmed</i> rather than claimed — the payoff of record-don't-replay. High availability is <b>not</b> claimed: Multi-AZ was declined on cost (D25)</td></tr>
-      <tr><td>Evaluation (strongest signal)</td><td class="force">M4 invariant sweep + seed regression fixtures, wired as a <i>deploy gate</i>; M11 labeled suite (tool accuracy, completion, escalation precision, cost)</td><td>Groundedness/hallucination metrics live in ClubMate's RAG — not Latch's axis; say so in interviews</td></tr>
-      <tr><td>Guardrails / policy / access control</td><td class="force">M6 budgets (I4); M7 structural scoping + risk classes + critic; M8 approvals; IAM task roles + least-privilege secret access from M2</td><td>Guardrails the model cannot cross by being wrong — and, in the cloud, guardrails the <i>process</i> cannot cross either</td></tr>
-      <tr><td>Observability &amp; traceability</td><td class="force">M1 event log (the trace <i>is</i> the data model); M6 per-decision provider/model/cost; M12 CloudWatch dashboard + dead-letter alarm + cost per workflow; <b>M14 trace + list + cost pages, updating live over SSE</b></td><td>Langfuse: built-not-bought — know the product, explain the equivalence. CloudWatch is the operator's aggregate view of the same log; the dashboard is the per-workflow drill-down</td></tr>
-      <tr><td>Real-time / streaming</td><td class="force">M14 SSE over a Postgres <code>LISTEN/NOTIFY</code> fanout, issued in the same transaction as the event append</td><td>One-directional by design (D24 — WebSockets' upstream half would be dead weight). The notification is <b>advisory</b>: drop every one and the page is still correct, just slower</td></tr>
-      <tr><td>Model routing &amp; cost</td><td class="force">M6 per-phase tiers + reserve-before-spend, <b>cross-provider</b>: a tier names a (provider, model) pair across OpenAI and Bedrock; M11 measured savings over three configurations, no quality regression</td><td>Extends D17 — static tiers stand, a tier now names a provider too. Worst-case spend bounded by an invariant, not an alert</td></tr>
-      <tr><td>Retrieval (vector · named vendors)</td><td class="force">M10 pgvector + embeddings, on RDS in production</td><td>Pinecone/Weaviate/Chroma are interface-swaps behind the same port; ChromaDB shipped in ClubMate. Graph/Neo4j: deliberate WON'T (see design doc) — nothing in Latch wants a graph</td></tr>
-      <tr><td>Reliability · async / queueing (Xanadu hard req)</td><td class="force">M3 SKIP LOCKED queue, leases, fencing, takeover — proven <i>across hosts</i> on Fargate; M8 error taxonomy + DLQ; M12 <b>SQS ingress buffer</b> + dead-letter alarm; unattended workers throughout</td><td>Plus mint's concurrency story. The cross-host takeover is the version of this demo that a distributed-systems interviewer can't wave away. Both queue technologies appear, each where it belongs — the directional argument in D23 is the point</td></tr>
-      <tr><td>Frameworks</td><td class="force">M9 LangChain (tools); M14 React + TanStack Query + <code>EventSource</code>; Fastify</td><td>LangGraph fluency via stretch S3 (baseline comparison); AutoGen/CrewAI: discuss vs D18, don't adopt</td></tr>
-      <tr><td>Infrastructure</td><td class="force">Postgres (core), Docker + Compose (M0/M15), <b>AWS — ECS Fargate, RDS, CDK, Secrets Manager, CloudWatch, S3, ECR, OIDC (M0 / M2 / M12)</b>, CI/CD with eval gates and OIDC deploys (M0, M4, M11), GHCR + ECR (M14)</td><td><b>AWS is now backed by a real deployment — claim it.</b> <b>GCP and Kubernetes remain unbacked: trim both from the résumé skills line</b> until something ships on them. EKS was rejected on cost, not ignorance (D23, ~$73/mo for a control plane); <code>kind</code> stays the free route if Kubernetes is ever wanted (stretch S4). Redis returns post-MVP (backpressure)</td></tr>
-      <tr><td>Languages</td><td class="force">TypeScript end to end — including the infrastructure, via CDK</td><td>Python/Go/Java covered by the other portfolio projects</td></tr>
-    </tbody>
-  </table></div>
-
   <!-- BACKLOG -->
-  <h2 class="section" id="backlog"><span class="num">R2.</span> Post-MVP backlog, cost, &amp; drop guidance</h2>
+  <h2 class="section" id="backlog"><span class="num">R1.</span> Post-MVP backlog, cost, &amp; drop guidance</h2>
   <p><b>If the MVP itself slips</b>, thin further rather than dropping axes — and thin in this order.
     <b>M12 (the cloud-native surface) thins before M2 (the deployment) is touched</b>: autoscaling can shrink to one
     recorded manual scale-out, the dashboard to three metrics, S3 to the size cap alone. And neither is cut before
@@ -985,7 +995,7 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
     without it.)</p>
   <div class="highlight">
     <span class="lab">The cheap cuts, in order — take these before touching anything above</span>
-    <p>Weeks 4 and 5 are <b>surface</b>. Every item below is real work with résumé value, and not one of them carries an
+    <p>Weeks 4 and 5 are <b>surface</b>. Every item below is real work, and not one of them carries an
       invariant, a gate or a published correctness number — which makes them the right things to lose first, and cheap
       to lose:</p>
     <p><b>1 · M14's SSE layer reverts to polling.</b> A fifteen-minute revert, and the only thing that changes is the
@@ -996,6 +1006,20 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
     <p class="note">Stated the other way round: <b>the plan can lose 12 of its 98 hours without losing a single
       number.</b> That is what makes weeks 4–5 safe to schedule at all.</p>
   </div>
+  <div class="highlight">
+    <span class="lab">Rebased 2026-08-07 — the 50-hour cut</span>
+    <p><b>Deferred (36h):</b> M9 tool adapters · M10 case memory · M11 labeled suite · M12 cloud-native surface ·
+      M13 production edge · the list page, cost page and SSE from M14. Nothing is abandoned — each is additive, and
+      only two touch existing code at all (M10 needs pgvector back; SSE needs one <code>NOTIFY</code> inside the
+      append transaction).</p>
+    <p><b>Order of sacrifice if you fall behind:</b> M8 → M7 → thin the dashboard to the trace view alone (~3h).
+      <b>Ship is never what you cut</b> — it is what makes the other 44 hours legible to anyone else.</p>
+    <p><b>Two knock-ons.</b> With M10 gone <b>nothing uses pgvector</b> — switch Compose and RDS to plain
+      <code>postgres:17</code> and drop the vector-retrieval claim for this project.
+      With M12 gone there is <b>no SQS and no autoscaling</b>, so the cloud claim is deployment and cross-host
+      takeover, not elasticity.</p>
+  </div>
+
   <div class="concept">
     <span class="lab">Concept · what the cloud pillar actually costs</span>
     <p><b>~$30–45 of infrastructure spend across the whole build</b>, on the assumption that the stack is destroyed
@@ -1009,10 +1033,10 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
       the database inside the free tier, which is where most of the saving actually comes from.</p>
     <p>Two consequences worth stating rather than discovering. <b>Teardown is the cost control</b> — at $0.13/hour a
       stack left running for a month is ~$95, so the routine matters more than any single service choice. And
-      <b>a torn-down stack must not produce a dead résumé link</b>, which is why M13 includes the static holding page:
+      <b>a torn-down stack must not produce a dead link</b>, which is why M13 includes the static holding page:
       the domain always serves something, and <code>cdk deploy</code> brings the live version back in one command.</p>
     <p>Model tokens are counted separately and bounded elsewhere — by the envelope that M6 makes invariant I4. After
-      M15, capture the evidence and tear the stack down: <b>the résumé claim does not require it to stay running</b>,
+      M15, capture the evidence and tear the stack down: <b>the published evidence does not require it to stay running</b>,
       and a screenshot of a dashboard costs $0.00/month to keep.</p>
   </div>
   <p><b>After M15, in order:</b> invoice demo (C15 — proves the engine is infrastructure, not one app) → stall
@@ -1022,7 +1046,18 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
     S3 <b>LangGraph baseline comparison</b>, S4 <b>Kubernetes + kind</b>.</p>
 
   <!-- SHIP -->
-  <h2 class="section" id="ship"><span class="num">R3.</span> What gets published — and the resume bullets</h2>
+  <h2 class="section" id="ship"><span class="num">R2.</span> What gets published</h2>
+  <div class="honest">
+    <span class="lab">Honesty box · what the 50-hour cut removes from this table</span>
+    <p><b>Tier 3 (agent quality) is deferred</b> — correct-completion rate, tool-use accuracy, escalation precision and
+      the critic's catch / false-block rate all come from the 12-case labeled suite (M11), which is cut. The critic
+      itself still ships in M7; what is missing is the measurement, which is exactly the weakness to name rather than
+      paper over.</p>
+    <p><b>Tier 4 loses the autoscaling burst</b> (M12). What survives is the cross-host lease takeover on Fargate and
+      the deploy-mid-workflow evidence. Tiers 1 and 2 are unaffected — the 1,000-seed sweep and the cost numbers both
+      land at M4 and M6.</p>
+  </div>
+
   <div class="tblwrap"><table>
     <thead><tr><th>Tier</th><th>Published at M15</th></tr></thead>
     <tbody>
@@ -1059,46 +1094,30 @@ APPEND:    INSERT INTO workflow_events … WHERE EXISTS
       <tr><td class="force">Sweep <b>wall-clock</b>, seed count, fixture count</td><td>M4</td><td>Wall-clock is what proves the sweep is a real CI gate rather than a one-off overnight run</td></tr>
       <tr><td class="force"><b>The bugs-caught log</b> — one line per real bug the sweep surfaced, with its seed and the invariant that caught it</td><td>M4 onward</td><td>The single strongest artifact in this list, and the only one that cannot be reconstructed later</td></tr>
       <tr><td class="force"><b>Denominators</b> per sweep: workflows started, side-effecting operations executed, retries triggered, crashes injected, takeovers performed</td><td>M4 · M5</td><td>Turns four zeros into four ratios with visible surface area</td></tr>
-      <tr><td class="force"><b>Zero additional model calls</b> after a crash-resume, as a counted assertion</td><td>M6</td><td>The crispest possible proof of record-don't-replay, and the best interview fact in the project</td></tr>
+      <tr><td class="force"><b>Zero additional model calls</b> after a crash-resume, as a counted assertion</td><td>M6</td><td>The crispest possible proof of record-don't-replay, and the crispest fact the project produces</td></tr>
       <tr><td class="force">$ per workflow; routing savings % with the suite <b>held identical</b> across configurations</td><td>M6 · M11</td><td>If the suite differs between runs the percentage is not comparable and the claim is void</td></tr>
       <tr><td class="force"><b>Critic catch rate and false-block rate</b> against planted bad decisions; escalation precision; tool-use accuracy</td><td>M11</td><td>Turns the control-plane bullet from a feature list into a measured claim — currently its weakest axis</td></tr>
       <tr><td class="force">Burst telemetry: burst size, <b>time to scale out</b>, <b>time to drain</b>, tasks at peak</td><td>M12</td><td>"2 → 10" alone omits whether the loop closed quickly or eventually</td></tr>
       <tr><td class="force"><b>Infrastructure</b> cost per workflow, separate from model cost</td><td>M12</td><td>Almost nobody publishes this, and it pairs with the model-cost number</td></tr>
-      <tr><td class="force">Test count and <b>test-to-code ratio</b></td><td>M15</td><td>Costs nothing to measure and reads as a credibility signal</td></tr>
+      <tr><td class="force">Test count and <b>test-to-code ratio</b></td><td>M15</td><td>Costs nothing to measure and is a credibility signal</td></tr>
       <tr><td class="force"><b>Stranger-clone timing</b> — <code>git clone</code> → a reproduced number, in minutes</td><td>M15</td><td>README gold: it converts "reproducible" from an adjective into a duration</td></tr>
     </tbody>
   </table></div>
 
-  <div class="highlight">
-    <span class="lab">The four resume bullets this MVP earns — v4 house style</span>
-    <p class="note" style="margin-top:0">Four bullets, 26–32 words each, one number in every bullet, four distinct
-      opening verbs, no em-dashes. Services live on the stack line, not in the bullets. Written past-tense as they will
-      read once the numbers exist, <b>not before</b>.</p>
-    <p><b>Latch</b> · durable execution engine for AI agent workflows<br>
-      <span class="muted">TypeScript · PostgreSQL · AWS (ECS Fargate, RDS, CDK, CloudWatch, S3) · OpenAI + Bedrock · MCP</span></p>
-    <p>· Built a durable execution engine for AI agent workflows that resumes killed runs mid-flight with
-      <b>zero duplicate side effects</b>, recording each model decision as an append-only fact instead of replaying it.<br>
-      · Verified <b>4 invariants</b> (no duplicate effects, no lost workflows, single owner, budget ceiling) across
-      <b>1,000+</b> seeded crash schedules, keeping every failing seed as a permanent regression test in CI.<br>
-      · Deployed it on AWS with infrastructure as code, autoscaling workers <b>2 to 10</b> on queue depth and taking
-      over a killed host's workflow mid-run without re-running its side effects.<br>
-      · Enforced per-workflow dollar budgets, tool scoping, and risk-gated human approval, adding a <b>second model</b>
-      that reviews every irreversible action before it runs, scored against a <b>12-case</b> labeled suite in CI.</p>
-  </div>
+
 
   <!-- GATE -->
   <div class="gate" id="gate">
     <p><b>Gate — the MVP plan.</b> This is the execution companion. Every design question it relies on is locked in the
       <a href="DESIGN.html">design doc</a> (decisions D1–D22, deep dives §4–§9), plus <b>D23–D25</b> here — the AWS
       service set and its rejections, the live-update transport, and the production edge. If the chunk order, the two
-      pillars, the gates and the JD coverage read right, say <b>next</b> and we begin <b>M0 — the scaffold</b>, which
+      pillars and the gates read right, say <b>next</b> and we begin <b>M0 — the scaffold</b>, which
       now includes the CDK app and the OIDC role. Statuses on the board update as chunks land.</p>
   </div>
 
   <hr>
   <p class="muted" style="font-size:.8rem">Latch · MVP build plan · docs/MVP.html · companion to docs/DESIGN.html ·
-    drafted 2026-08-01 · revised 2026-08-05: cloud-native restructured as pillar 2 · revised 2026-08-07: production
-    edge (M13, trimmed to ALB + TLS + auto-rollback) + the full dashboard with live updates (M14) · SQS ingress buffer (M12) — M0–M15, ~99h, five weeks ·
+    drafted 2026-08-01 · revised 2026-08-05: cloud-native restructured as pillar 2 · rebased 2026-08-07 to a 50-hour budget — 9 chunks, ~54h, ship at 48h, 36h deferred · SQS ingress buffer (M12) — M0–M15, ~99h, five weeks ·
     statuses update as chunks complete · M0 is next.</p>
 </main>
 </div>

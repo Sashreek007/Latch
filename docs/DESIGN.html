@@ -546,7 +546,7 @@ hr{border:none;border-top:4px double var(--border-2);margin:36px 0}
   <div class="decision">
     <div class="dh"><span class="tag">Decision 3</span> Side-effect semantics — what may we honestly claim?</div>
     <div class="body">
-      <div class="opt"><span class="name">"Exactly-once", unqualified</span> — impossible against an external system without its cooperation: the crash window between "call executed" and "outcome recorded" cannot be closed from our side alone. Claiming it invites the first distributed-systems interviewer to demolish it.</div>
+      <div class="opt"><span class="name">"Exactly-once", unqualified</span> — impossible against an external system without its cooperation: the crash window between "call executed" and "outcome recorded" cannot be closed from our side alone. Claiming it unqualified is a claim the first careful reader can demolish.</div>
       <div class="opt"><span class="name">At-most-once</span> — never retry after an ambiguous failure. No duplicates, but work is silently lost; violates I2's spirit.</div>
       <div class="opt win"><span class="name">Effectively-once</span> — <b>exactly-once intent recording</b> + <b>at-least-once execution</b> + <b>dedupe via a mandatory idempotency key</b> honored at the tool boundary.</div>
       <div class="why"><b>We claim effectively-once, precisely.</b> For tools Latch owns (the demo tools), the effects table makes dedupe airtight and the harness verifies it mechanically — that's the headline "zero duplicate side effects, verified at the tool boundary." For external APIs, the key is passed through (Stripe-style) and the guarantee is exactly as good as the provider's idempotency support — stated, not hidden. Structurally, <code>ToolExecutor</code> takes the key as a <i>required</i> parameter: a tool without a key cannot exist, the same philosophy as tool scoping (D7).</div>
@@ -1053,7 +1053,7 @@ CREATE TABLE effects (
     <p>A third-party API with no idempotency support can, in the §5 dangerous window, receive a duplicate call — no
       client-side design can prevent that, only document it. Latch's claim is scoped: <b>zero duplicates through the
       tool layer for key-honoring tools (verified across all seeds), and a complete intent audit for everything else.</b>
-      Interviewers poke here; this box is the prepared answer.</p>
+      This is the boundary of the claim, stated rather than discovered.</p>
   </div>
 
   <div class="locked">
@@ -1404,15 +1404,15 @@ I4: at every prefix of the log: reserved + spent ≤ envelope.budgetUsd</pre>
       integration is continuous, never an event.</p>
   </div>
 
-  <h3 id="mvp">The MVP cut — resume-ready first, everything else after</h3>
+  <h3 id="mvp">The MVP cut — the shortest path to a working system</h3>
   <p class="note">The MVP now has its own full execution plan — <a href="MVP.html"><b>docs/MVP.html</b></a> — with
-    per-chunk deliverables, verify gates, a live status board, and the JD coverage map. The summary below stays as the
+    per-chunk deliverables, verify gates and a live status board. The summary below stays as the
     cut's rationale; the companion doc is what we build from. It adds exactly one decision to this doc's sequence —
     <b>D23–D25</b> — the AWS service set and its six deliberate rejections, the live-update transport
     (SSE over <code>LISTEN/NOTIFY</code>), and the production edge — which live there rather than here because they are
     decisions about deployment and surface, not about the engine.</p>
-  <p>A re-slicing of C0–C20 for shipping fast: <b>thin every axis instead of dropping axes</b>. Every resume-filter
-    keyword keeps a real, demonstrable artifact; what's deferred is <i>depth</i> — the second demo, Redis, stall
+  <p>A re-slicing of C0–C20 for shipping fast: <b>thin every axis instead of dropping axes</b>. Every capability
+    keeps a real, demonstrable artifact; what's deferred is <i>depth</i> — the second demo, Redis, stall
     heuristics, the 50-case suite — never coverage. Same architecture, same repo: post-MVP work bolts on, nothing is
     throwaway. The engine still composes down to <b>Node + Postgres only</b> (Redis enters post-MVP with backpressure).</p>
   <p><b>Where the MVP is not a subset.</b> The cut carries a second pillar this section predates: it is
@@ -1426,29 +1426,41 @@ I4: at every prefix of the log: reserved + spent ≤ envelope.budgetUsd</pre>
     queue, state, events, intents and effects in a single transaction, plus long-lived leased workers — is unchanged
     by any of it, which is the entire reason the deployment could be moved this early.</p>
 
+  <div class="highlight">
+    <span class="lab">Rebased 2026-08-07 — a 50-hour budget</span>
+    <p>M0 and M1 are done. The remaining plan is <b>nine chunks, ~54 h</b> (about 11 days at 5 h/day), with
+      <b>36 h deferred</b> to post-MVP. Chunk IDs below are unchanged; what changed is the <b>order and the scope</b>.</p>
+    <p><b>Build order:</b> M2 → M3 → M4 → M5 → M6 → M7 → <b>M14 (thin, 5 h)</b> → <b>M15 Ship — shippable at 48 h</b> → M8.
+      The dashboard runs before Ship because it is how the project is presented; M8 is the optional tail.</p>
+    <p><b>Deferred (36 h):</b> M9 tool adapters · M10 case memory · M11 labeled suite · M12 cloud-native surface ·
+      M13 production edge · the list page, cost page and SSE from M14. Two knock-ons: nothing uses <b>pgvector</b> any
+      more (use plain <code>postgres:17</code>), and with M12 gone the cloud claim is <b>deployment and cross-host
+      takeover, not elasticity</b>.</p>
+  </div>
+
   <div class="tblwrap"><table>
     <thead><tr><th>#</th><th>MVP chunk · hrs</th><th>Delivers (maps to)</th><th>Verify by</th></tr></thead>
     <tbody>
-      <tr><td>M0</td><td>Scaffold · 4</td><td>pnpm monorepo, Compose (<b>Postgres only</b>), migrations, CI — plus the <b>CDK app skeleton</b> and a <b>GitHub OIDC deploy role</b>, before any real code (⊂ C0 + new)</td><td class="force">compose up · migrate · CI green; CI assumes its AWS role and <code>cdk synth</code> succeeds</td></tr>
-      <tr><td>M1</td><td>Skeleton + event log · 5</td><td>ticket-v0 code phases; start/status; append-only events + same-txn projection (C1 + C2 thin)</td><td class="force">curl start → <code>completed</code>; events in psql</td></tr>
-      <tr><td>M2</td><td><b>Deploy the skeleton</b> · 7</td><td>ECR + one image / two task definitions; ECS Fargate api + worker services; RDS Postgres w/ pgvector, private and not publicly reachable; Secrets Manager + least-privilege task roles; no ALB; CI deploys on merge (<b>new — no C ancestor</b>)</td><td class="force">the same skeleton completes a workflow <b>on Fargate against RDS, deployed by CI, zero console clicks</b>; <code>cdk destroy</code> → redeploy → still true ✦</td></tr>
-      <tr><td>M3</td><td>Queue + leases + fencing · 6</td><td>SKIP LOCKED claim, heartbeat, takeover, fencing token (C3)</td><td class="force">2 workers; <b>kill -9 mid-run; the other finishes</b> — and <code>aws ecs stop-task</code> → <b>a task on another host</b> finishes ✦</td></tr>
-      <tr><td>M4</td><td>Harness v1 · 6</td><td>seeded scheduler, logical workers, injected clock, named crash points + lease-expiry + tool-failure injection; <b>I2 + I3</b> @ 500 seeds; <b>local-only</b>, and wired as a deploy gate (C4 + C6 thin)</td><td class="force">sweep green; break fencing → red seed → revert</td></tr>
-      <tr><td>M5</td><td>Intents + effects · 5</td><td><code>ToolExecutor</code>, effects table, <b>I1</b>; ticket gains its side-effecting reply tool (C5)</td><td class="force">dangerous-window crash → executions(key)=1 ✦</td></tr>
-      <tr><td>M6</td><td>Agent step + envelope + tiers · 10</td><td>ModelClient with <b>three</b> drivers (OpenAI · <b>Bedrock via IAM</b> · fake), decision events w/ provider + $, reserve-before-spend, caps, <b>cross-provider</b> per-phase tiers; <b>I4</b> (C7 + C9 + D17 + D23)</td><td class="force">crash after decision → zero re-asks; runaway halts at ceiling; routing suite reports the Bedrock cost delta</td></tr>
-      <tr><td>M7</td><td>Scoping + risk + critic · 5</td><td>per-phase tool arrays, risk classes, proposer/critic gate on irreversible intents (C8 + C18)</td><td class="force">out-of-scope call → error event; critic disagreement → suspended</td></tr>
-      <tr><td>M8</td><td>HITL + thin DLQ · 6</td><td>suspend/approve/deny, one-hop escalation on <code>due_at</code> rows, attempt caps → DLQ with committed-effects list (C11 + C12 thin)</td><td class="force">kill workers while suspended; approve → resumes; DLQ row confesses its effects</td></tr>
-      <tr><td>M9</td><td>Tool adapters · 7</td><td>MCP client + LangChain <code>StructuredTool</code> adapter behind the port; the MCP server ships as a task sidecar (C19)</td><td class="force">ticket calls an MCP-served and a LangChain-adapted tool — scoped, keyed, in both environments</td></tr>
-      <tr><td>M10</td><td>Case memory · 4</td><td>pgvector store of resolved cases; advisory retrieval into investigation context; live embeddings, fake embedder in harness — no infra change, the extension was enabled at M2 (C20 thin)</td><td class="force">prior-case context in the trace; sweep still deterministic</td></tr>
-      <tr><td>M11</td><td>Demo policy + mini-suite · 5</td><td>prose policy, refund thresholds; <b>12 labeled cases</b> → escalation precision, tool accuracy, critic catch rate, routing savings across three provider configurations (C13 thin)</td><td class="force">Tier 2/3 mini-tables produced per commit</td></tr>
-      <tr><td>M12</td><td><b>Cloud-native surface</b> · 11</td><td><b>SQS ingress buffer</b> (adopted upstream of the transaction, where redelivery dedupes and a lost publish cannot happen — D23); queue-depth CloudWatch custom metric → ECS target-tracking autoscaling; dashboard + dead-letter alarm + cost per workflow; S3 for large artifacts by reference — the honest implementation of §4's size-cap guardrail (<b>new — no C ancestor</b>)</td><td class="force">a 500-message SQS burst ingests with no failed requests and scales the worker service <b>2 → 10 → 2</b> in the dashboard; local sweep still green ✦</td></tr>
-      <tr><td>M13</td><td><b>Production edge</b> · 3</td><td>ALB + ACM + Route 53 custom domain; ECS deployment circuit breaker with automatic rollback; a static holding page for teardown. Multi-AZ and WAF <i>declined on cost</i> (<b>new — no C ancestor</b>; D25 reverses M2's "no ALB")</td><td class="force">HTTPS at the domain; a deploy shipped mid-workflow with no dropped requests, then a broken task definition rolled back automatically ✦</td></tr>
-      <tr><td>M14</td><td>Dashboard · 11</td><td>per-step trace + approval queue + <b>workflow list</b> + <b>cost page</b>, updating <b>live over SSE</b> on a Postgres LISTEN/NOTIFY fanout (C14 in full + two COULD-tier items; D24)</td><td class="force">the trace fills with no refresh; kill the API mid-stream → the browser reconnects and catches up from the log; the sweep is byte-identical</td></tr>
-      <tr><td>M15</td><td>Ship · 4</td><td>1,000+ seed sweep, README with tiered numbers, kill-demo GIFs, <b>npm publish</b> of the SDK + engine image on GHCR/ECR, published cloud evidence + the CDK teardown path (C17 +)</td><td class="force">a stranger <code>npm install</code>s the SDK, composes up, reproduces every number — <b>with no AWS account</b> ✦</td></tr>
+      <tr><td>M0<br><span style="font-size:.72em;color:var(--must)">✔ done</span></td><td>Scaffold · 4</td><td>pnpm monorepo, Compose (<b>Postgres only</b>), migrations, CI — plus the <b>CDK app skeleton</b> and a <b>GitHub OIDC deploy role</b>, before any real code (⊂ C0 + new)</td><td class="force">compose up · migrate · CI green; CI assumes its AWS role and <code>cdk synth</code> succeeds</td></tr>
+      <tr><td>M1<br><span style="font-size:.72em;color:var(--must)">✔ done</span></td><td>Skeleton + event log · 5</td><td>ticket-v0 code phases; start/status; append-only events + same-txn projection (C1 + C2 thin)</td><td class="force">curl start → <code>completed</code>; events in psql</td></tr>
+      <tr><td>M2<br><span style="font-size:.72em;color:var(--should)">build 1</span></td><td><b>Deploy the skeleton</b> · 7</td><td>ECR + one image / two task definitions; ECS Fargate api + worker services; RDS Postgres w/ pgvector, private and not publicly reachable; Secrets Manager + least-privilege task roles; no ALB; CI deploys on merge (<b>new — no C ancestor</b>)</td><td class="force">the same skeleton completes a workflow <b>on Fargate against RDS, deployed by CI, zero console clicks</b>; <code>cdk destroy</code> → redeploy → still true ✦</td></tr>
+      <tr><td>M3<br><span style="font-size:.72em;color:var(--should)">build 2</span></td><td>Queue + leases + fencing · 6</td><td>SKIP LOCKED claim, heartbeat, takeover, fencing token (C3)</td><td class="force">2 workers; <b>kill -9 mid-run; the other finishes</b> — and <code>aws ecs stop-task</code> → <b>a task on another host</b> finishes ✦</td></tr>
+      <tr><td>M4<br><span style="font-size:.72em;color:var(--should)">build 3</span></td><td>Harness v1 · 6</td><td>seeded scheduler, logical workers, injected clock, named crash points + lease-expiry + tool-failure injection; <b>I2 + I3</b> @ 500 seeds; <b>local-only</b>, and wired as a deploy gate (C4 + C6 thin)</td><td class="force">sweep green; break fencing → red seed → revert</td></tr>
+      <tr><td>M5<br><span style="font-size:.72em;color:var(--should)">build 4</span></td><td>Intents + effects · 5</td><td><code>ToolExecutor</code>, effects table, <b>I1</b>; ticket gains its side-effecting reply tool (C5)</td><td class="force">dangerous-window crash → executions(key)=1 ✦</td></tr>
+      <tr><td>M6<br><span style="font-size:.72em;color:var(--should)">build 5</span></td><td>Agent step + envelope + tiers · 10</td><td>ModelClient with <b>three</b> drivers (OpenAI · <b>Bedrock via IAM</b> · fake), decision events w/ provider + $, reserve-before-spend, caps, <b>cross-provider</b> per-phase tiers; <b>I4</b> (C7 + C9 + D17 + D23)</td><td class="force">crash after decision → zero re-asks; runaway halts at ceiling; routing suite reports the Bedrock cost delta</td></tr>
+      <tr><td>M7<br><span style="font-size:.72em;color:var(--should)">build 6</span></td><td>Scoping + risk + critic · 5</td><td>per-phase tool arrays, risk classes, proposer/critic gate on irreversible intents (C8 + C18)</td><td class="force">out-of-scope call → error event; critic disagreement → suspended</td></tr>
+      <tr><td>M8<br><span style="font-size:.72em;color:var(--should)">build 9</span></td><td>HITL + thin DLQ · 6</td><td>suspend/approve/deny, one-hop escalation on <code>due_at</code> rows, attempt caps → DLQ with committed-effects list (C11 + C12 thin)</td><td class="force">kill workers while suspended; approve → resumes; DLQ row confesses its effects</td></tr>
+      <tr><td>M9<br><span style="font-size:.72em;color:var(--wont)">post-MVP</span></td><td>Tool adapters · 7</td><td>MCP client + LangChain <code>StructuredTool</code> adapter behind the port; the MCP server ships as a task sidecar (C19)</td><td class="force">ticket calls an MCP-served and a LangChain-adapted tool — scoped, keyed, in both environments</td></tr>
+      <tr><td>M10<br><span style="font-size:.72em;color:var(--wont)">post-MVP</span></td><td>Case memory · 4</td><td>pgvector store of resolved cases; advisory retrieval into investigation context; live embeddings, fake embedder in harness — no infra change, the extension was enabled at M2 (C20 thin)</td><td class="force">prior-case context in the trace; sweep still deterministic</td></tr>
+      <tr><td>M11<br><span style="font-size:.72em;color:var(--wont)">post-MVP</span></td><td>Demo policy + mini-suite · 5</td><td>prose policy, refund thresholds; <b>12 labeled cases</b> → escalation precision, tool accuracy, critic catch rate, routing savings across three provider configurations (C13 thin)</td><td class="force">Tier 2/3 mini-tables produced per commit</td></tr>
+      <tr><td>M12<br><span style="font-size:.72em;color:var(--wont)">post-MVP</span></td><td><b>Cloud-native surface</b> · 11</td><td><b>SQS ingress buffer</b> (adopted upstream of the transaction, where redelivery dedupes and a lost publish cannot happen — D23); queue-depth CloudWatch custom metric → ECS target-tracking autoscaling; dashboard + dead-letter alarm + cost per workflow; S3 for large artifacts by reference — the honest implementation of §4's size-cap guardrail (<b>new — no C ancestor</b>)</td><td class="force">a 500-message SQS burst ingests with no failed requests and scales the worker service <b>2 → 10 → 2</b> in the dashboard; local sweep still green ✦</td></tr>
+      <tr><td>M13<br><span style="font-size:.72em;color:var(--wont)">post-MVP</span></td><td><b>Production edge</b> · 3</td><td>ALB + ACM + Route 53 custom domain; ECS deployment circuit breaker with automatic rollback; a static holding page for teardown. Multi-AZ and WAF <i>declined on cost</i> (<b>new — no C ancestor</b>; D25 reverses M2's "no ALB")</td><td class="force">HTTPS at the domain; a deploy shipped mid-workflow with no dropped requests, then a broken task definition rolled back automatically ✦</td></tr>
+      <tr><td>M14<br><span style="font-size:.72em;color:var(--should)">build 7 · thin</span></td><td>Dashboard · 11</td><td>per-step trace + approval queue + <b>workflow list</b> + <b>cost page</b>, updating <b>live over SSE</b> on a Postgres LISTEN/NOTIFY fanout (C14 in full + two COULD-tier items; D24)</td><td class="force">the trace fills with no refresh; kill the API mid-stream → the browser reconnects and catches up from the log; the sweep is byte-identical</td></tr>
+      <tr><td>M15<br><span style="font-size:.72em;color:var(--should)">build 8 ✦</span></td><td>Ship · 4</td><td>1,000+ seed sweep, README with tiered numbers, kill-demo GIFs, <b>npm publish</b> of the SDK + engine image on GHCR/ECR, published cloud evidence + the CDK teardown path (C17 +)</td><td class="force">a stranger <code>npm install</code>s the SDK, composes up, reproduces every number — <b>with no AWS account</b> ✦</td></tr>
     </tbody>
   </table></div>
 
-  <p><b>~99 h core</b> ≈ 5 weeks at 4–5 h/day — inside the 120–150 h budget, but the slack is now thin, and that is
+  <p><b>~54 h remaining</b> (of ~99 h planned; 9 h done, 36 h deferred) ≈ 5 weeks at 4–5 h/day — inside the 120–150 h budget, but the slack is now thin, and that is
     worth saying plainly: the original cut was 67 h / three weeks precisely so that a 1.5× slip still landed inside a
     month. At 96 h the MVP has stopped being a fast cut and has become most of the project. The extra 29 hours bought
     the second pillar (M2 · M12 · M13 · the Bedrock driver in M6) and the full dashboard (M14). What keeps that safe is
@@ -1457,24 +1469,7 @@ I4: at every prefix of the log: reserved + spent ≤ envelope.budgetUsd</pre>
     workflows, zero double-owners, zero budget breaches across 1,000+ seeded crash schedules</i> — plus both kill
     demos, the local <code>kill&nbsp;-9</code> and the cross-host takeover on Fargate.</p>
 
-  <div class="tblwrap"><table>
-    <thead><tr><th>Resume filter</th><th>Covered in the MVP by</th></tr></thead>
-    <tbody>
-      <tr><td>State management / durable execution</td><td class="force">event log, projections, resume-from-facts (M1–M5)</td></tr>
-      <tr><td>Async · queueing · concurrency</td><td class="force">SKIP LOCKED queue, leases, fencing tokens — takeover proven <i>across hosts</i> (M3)</td></tr>
-      <tr><td><b>Cloud-native · IaC · autoscaling</b></td><td class="force">CDK app + GitHub OIDC (M0); ECS Fargate + RDS + Secrets Manager + IAM task roles, CI-deployed (M2); CloudWatch metrics, queue-depth autoscaling, S3 artifacts (M12) — the six rejected AWS services and their reasons are D23</td></tr>
-      <tr><td>Evaluation pipelines</td><td class="force">invariant sweep over 1,000+ seeds, wired as a deploy gate, + 12-case labeled suite (M4, M11)</td></tr>
-      <tr><td>Guardrails / policy / access control</td><td class="force">structural tool scoping, risk classes, budget envelope — plus least-privilege IAM in the deployment (M6, M7)</td></tr>
-      <tr><td>Multi-agent orchestration</td><td class="force">proposer/critic gate on irreversible actions (M7)</td></tr>
-      <tr><td>Human-in-the-loop</td><td class="force">suspension, approval queue, escalation (M8, M14)</td></tr>
-      <tr><td>Tool use · MCP · LangChain</td><td class="force"><code>ToolExecutor</code> port + MCP-served and LangChain-adapted tools (M5, M9) — LangChain supplies tools, never orchestration</td></tr>
-      <tr><td>Long-term memory · vector retrieval</td><td class="force">cross-workflow case memory on pgvector (M10)</td></tr>
-      <tr><td>Cost control · model routing</td><td class="force">reserve-before-spend, per-phase tiers <b>across providers</b> (OpenAI + Bedrock), measured savings (M6, M11)</td></tr>
-      <tr><td>Observability / traceability</td><td class="force">the event log <i>is</i> the trace, plus CloudWatch and a four-surface dashboard that updates live over SSE (M12, M14)</td></tr>
-      <tr><td>Zero-downtime deploys</td><td class="force">ALB + ACM + Route 53; deployment circuit breaker with automatic rollback, exercised by a deploy shipped mid-workflow (M13). Multi-AZ declined on cost — HA is <i>not</i> claimed</td></tr>
-      <tr><td>Idempotency · exactly-once · DLQ</td><td class="force">intents, effects table, dead-letter with committed-effects list + its alarm (M5, M8, M12)</td></tr>
-    </tbody>
-  </table></div>
+
 
   <p class="note">Deferred to post-MVP, in suggested order: the invoice demo (C15 — proves the engine is infrastructure,
     not one app), cycle/no-progress stall heuristics (C10), Redis backpressure (C16), dashboard list/cost/SSE pages,
@@ -1488,7 +1483,8 @@ I4: at every prefix of the log: reserved + spent ≤ envelope.budgetUsd</pre>
       harness at C4–C6 (never later), the headline exists by end of week 2, and the drop ladder is pre-committed:
       C15 → C20 → C19, with C0–C14 + C17 untouchable. The three build rules — skeleton first, demo-as-workload, no
       capability without its falsifier — are the plan; the MVP adds a fourth, <i>both environments stay green</i>.
-      <b>The MVP cut (M0–M15, ~99 h) is the active path:</b> every resume-filter axis ships thin-first, on two pillars
+      <b>The MVP cut, rebased to 50 h (9 chunks, ~54 h, ship at 48 h), is the active path:</b> every
+      axis ships thin-first, on two pillars
       — the durable engine, and an AWS deployment that exists from M2 and stays deployed. The deferred depth resumes
       afterwards from the same seams.</p>
   </div>
@@ -1506,7 +1502,7 @@ I4: at every prefix of the log: reserved + spent ≤ envelope.budgetUsd</pre>
   <p class="muted" style="font-size:.8rem">Latch · living design doc · docs/DESIGN.html · keep in sync as chunks land ·
     Phases 1–3 drafted 2026-07-28 · amended after external review (D18 critic · C19 MCP · C20 case memory · drop ladder) ·
     MVP cut added 2026-08-01 · provider switched to OpenAI + LangChain tool adapter added (core loop stays framework-free) ·
-    §2 gained the scaling tiers 2026-08-07 · §10 MVP cut re-synced 2026-08-07 (SQS adopted as ingress buffer, M12) · re-synced 2026-08-05 to the cloud-native restructure, and 2026-08-07 for the production edge + full dashboard (M0–M15, ~99 h; D23–D25 live in MVP.html) ·
+    §10 rebased to a 50-hour budget 2026-08-07 · §2 gained the scaling tiers 2026-08-07 · §10 MVP cut re-synced 2026-08-07 (SQS adopted as ingress buffer, M12) · re-synced 2026-08-05 to the cloud-native restructure, and 2026-08-07 for the production edge + full dashboard (M0–M15, ~99 h; D23–D25 live in MVP.html) ·
     Phase 4 implementation next, starting at M0.</p>
 </main>
 </div>

@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 730" width="1100" height="730" role="img" aria-label="Latch AWS architecture. Client and SDK call Route 53 then an ALB with ACM inside the VPC. The ALB reaches an ECS Fargate group holding an API task and a worker task built from one image as two task definitions, autoscaling two to ten on queue depth. They reach a data layer holding RDS Postgres 17 with pgvector in a private subnet, the only stateful system. SQS sits outside the VPC as an ingress buffer upstream of the transaction. S3 holds large artifacts by reference. Below, models and tools are Bedrock with IAM auth, the OpenAI API with a key from Secrets Manager, and MCP plus LangChain tools inside the worker container. Security is Secrets Manager and IAM task roles. Deployment is GitHub Actions over OIDC, AWS CDK and ECR. Observability is CloudWatch. A bottom strip lists deliberately absent services.">
+<style>
+  svg{--bg:#faf8f1;--panel:#f2efe6;--panel2:#efebde;--border:#d9d3c0;--border2:#b3ac93;
+      --ink:#26271f;--ink2:#52534a;--ink3:#84856f;
+      --cyan:#2d5f9a;--cyanS:#e3eaf3;--violet:#86468b;--violetS:#efe3f0;
+      --amber:#a3641a;--amberS:#f4e7d0;--green:#1d6b50;--greenS:#dfeee4;--red:#b23a2f;}
+  @media (prefers-color-scheme: dark){
+    svg{--bg:#20231a;--panel:#191b13;--panel2:#262a1f;--border:#3b4030;--border2:#575d47;
+        --ink:#eeeadb;--ink2:#b8b5a0;--ink3:#8a8972;
+        --cyan:#85aede;--cyanS:#223145;--violet:#cf97d4;--violetS:#3a2440;
+        --amber:#dda155;--amberS:#3d2c12;--green:#62c093;--greenS:#1d3628;--red:#e58275;}}
+  text{font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;fill:var(--ink)}
+  .mono{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace}
+  .t{font-size:12.5px;font-weight:650}
+  .tb{font-size:13.5px;font-weight:700}
+  .s{font-size:8.5px;fill:var(--ink2)}
+  .xs{font-size:7.5px;fill:var(--ink3)}
+  .lab{font-size:9.5px;font-weight:700;letter-spacing:.1em}
+  .grp{font-size:10.5px;font-weight:700}
+</style>
+<rect width="1100" height="730" fill="var(--bg)"/>
+<defs>
+  <marker id="a" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink3)"/></marker>
+  <marker id="ag" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--green)"/></marker>
+  <marker id="aa" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--amber)"/></marker>
+</defs>
+
+<rect x="240" y="76" width="610" height="310" rx="6" fill="none" stroke="var(--violet)" stroke-width="1.3" stroke-dasharray="7 5"/>
+<text class="mono lab" x="254" y="97" fill="var(--violet)">VPC · PRIVATE NETWORK</text>
+
+<rect x="14" y="150" width="104" height="58" rx="4" fill="var(--panel2)" stroke="var(--border2)"/>
+<text class="t" x="66" y="177" text-anchor="middle">Client / SDK</text>
+<text class="s" x="66" y="194" text-anchor="middle">define · start · await</text>
+
+<rect x="136" y="150" width="88" height="58" rx="4" fill="var(--violetS)" stroke="var(--violet)"/>
+<text class="t" x="180" y="177" text-anchor="middle">Route 53</text>
+<text class="s" x="180" y="194" text-anchor="middle">DNS</text>
+
+<rect x="256" y="150" width="104" height="58" rx="4" fill="var(--violetS)" stroke="var(--violet)"/>
+<text class="t" x="308" y="175" text-anchor="middle">ALB + ACM</text>
+<text class="s" x="308" y="192" text-anchor="middle">HTTPS · domain</text>
+
+<rect x="390" y="118" width="224" height="150" rx="5" fill="none" stroke="var(--amber)" stroke-width="1.2"/>
+<text class="grp" x="401" y="137" fill="var(--amber)">ECS Fargate</text>
+<text class="xs" x="401" y="150">one image · two task definitions</text>
+<rect x="402" y="158" width="100" height="52" rx="4" fill="var(--amberS)" stroke="var(--amber)"/>
+<text class="t" x="452" y="181" text-anchor="middle">API task</text>
+<text class="s" x="452" y="197" text-anchor="middle">Fastify · ingest</text>
+<rect x="510" y="158" width="100" height="52" rx="4" fill="var(--amberS)" stroke="var(--amber)"/>
+<text class="t" x="560" y="181" text-anchor="middle">Worker</text>
+<text class="s" x="560" y="197" text-anchor="middle">claim → step</text>
+<text class="s" x="502" y="232" text-anchor="middle" fill="var(--amber)">autoscales 2 → 10 on queue depth</text>
+<text class="xs" x="502" y="247" text-anchor="middle">rolling deploy · circuit-breaker rollback</text>
+
+<rect x="646" y="118" width="196" height="150" rx="5" fill="none" stroke="var(--cyan)" stroke-width="1.2"/>
+<text class="grp" x="657" y="137" fill="var(--cyan)">Data layer</text>
+<rect x="656" y="146" width="176" height="92" rx="4" fill="var(--cyanS)" stroke="var(--cyan)" stroke-width="1.6"/>
+<text class="tb" x="744" y="169" text-anchor="middle">RDS Postgres 17</text>
+<text class="mono s" x="744" y="186" text-anchor="middle">queue · events · leases</text>
+<text class="mono s" x="744" y="198" text-anchor="middle">intents · effects · DLQ</text>
+<text class="mono s" x="744" y="210" text-anchor="middle">+ pgvector</text>
+<text class="s" x="744" y="228" text-anchor="middle" fill="var(--cyan)">the only stateful system</text>
+<text class="xs" x="744" y="256" text-anchor="middle">private subnet · not publicly reachable</text>
+
+<line x1="118" y1="179" x2="132" y2="179" stroke="var(--ink3)" stroke-width="1.3" marker-end="url(#a)"/>
+<line x1="224" y1="179" x2="252" y2="179" stroke="var(--ink3)" stroke-width="1.3" marker-end="url(#a)"/>
+<line x1="360" y1="179" x2="398" y2="179" stroke="var(--ink3)" stroke-width="1.3" marker-end="url(#a)"/>
+<line x1="614" y1="186" x2="642" y2="186" stroke="var(--ink3)" stroke-width="1.3" marker-end="url(#a)"/>
+
+<rect x="136" y="286" width="104" height="62" rx="4" fill="var(--amberS)" stroke="var(--amber)"/>
+<text class="t" x="188" y="311" text-anchor="middle">SQS</text>
+<text class="s" x="188" y="327" text-anchor="middle">ingress buffer</text>
+<text class="xs" x="188" y="340" text-anchor="middle">upstream of the txn</text>
+<line x1="242" y1="304" x2="398" y2="212" stroke="var(--amber)" stroke-width="1.3" marker-end="url(#aa)"/>
+
+<rect x="884" y="104" width="200" height="58" rx="4" fill="var(--greenS)" stroke="var(--green)"/>
+<text class="t" x="984" y="129" text-anchor="middle">S3</text>
+<text class="s" x="984" y="146" text-anchor="middle">large artifacts, by reference</text>
+<line x1="836" y1="172" x2="880" y2="142" stroke="var(--green)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ag)"/>
+
+<text class="mono lab" x="14" y="424" fill="var(--violet)">MODELS &amp; TOOLS</text>
+<rect x="136" y="440" width="150" height="58" rx="4" fill="var(--violetS)" stroke="var(--violet)"/>
+<text class="t" x="211" y="465" text-anchor="middle">AWS Bedrock</text>
+<text class="s" x="211" y="482" text-anchor="middle">IAM auth · no key</text>
+<rect x="300" y="440" width="150" height="58" rx="4" fill="var(--panel2)" stroke="var(--border2)"/>
+<text class="t" x="375" y="465" text-anchor="middle">OpenAI API</text>
+<text class="s" x="375" y="482" text-anchor="middle">key from Secrets Mgr</text>
+<rect x="464" y="440" width="170" height="58" rx="4" fill="var(--amberS)" stroke="var(--amber)"/>
+<text class="t" x="549" y="465" text-anchor="middle">MCP + LangChain</text>
+<text class="s" x="549" y="482" text-anchor="middle">in the worker container</text>
+<line x1="502" y1="268" x2="502" y2="410" stroke="var(--ink3)" stroke-width="1.2"/>
+<line x1="211" y1="410" x2="549" y2="410" stroke="var(--ink3)" stroke-width="1.2"/>
+<line x1="211" y1="410" x2="211" y2="436" stroke="var(--ink3)" stroke-width="1.2" marker-end="url(#a)"/>
+<line x1="375" y1="410" x2="375" y2="436" stroke="var(--ink3)" stroke-width="1.2" marker-end="url(#a)"/>
+<line x1="549" y1="410" x2="549" y2="436" stroke="var(--ink3)" stroke-width="1.2" marker-end="url(#a)"/>
+
+<text class="mono lab" x="664" y="424" fill="var(--green)">SECURITY</text>
+<rect x="664" y="440" width="160" height="58" rx="4" fill="var(--greenS)" stroke="var(--green)"/>
+<text class="t" x="744" y="465" text-anchor="middle">Secrets Manager</text>
+<text class="s" x="744" y="482" text-anchor="middle">DB URL · API key</text>
+<rect x="838" y="440" width="160" height="58" rx="4" fill="var(--greenS)" stroke="var(--green)"/>
+<text class="t" x="918" y="465" text-anchor="middle">IAM task roles</text>
+<text class="s" x="918" y="482" text-anchor="middle">one statement per secret</text>
+<line x1="744" y1="436" x2="600" y2="274" stroke="var(--green)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ag)"/>
+<text class="xs" x="700" y="360" fill="var(--green)">injected at task start</text>
+
+<text class="mono lab" x="14" y="548" fill="var(--amber)">DEPLOYMENT</text>
+<rect x="136" y="564" width="140" height="58" rx="4" fill="var(--panel2)" stroke="var(--border2)"/>
+<text class="t" x="206" y="589" text-anchor="middle">GitHub Actions</text>
+<text class="s" x="206" y="606" text-anchor="middle">OIDC · no stored keys</text>
+<rect x="290" y="564" width="110" height="58" rx="4" fill="var(--panel2)" stroke="var(--border2)"/>
+<text class="t" x="345" y="589" text-anchor="middle">AWS CDK</text>
+<text class="s" x="345" y="606" text-anchor="middle">IaC, TypeScript</text>
+<rect x="414" y="564" width="110" height="58" rx="4" fill="var(--panel2)" stroke="var(--border2)"/>
+<text class="t" x="469" y="589" text-anchor="middle">ECR</text>
+<text class="s" x="469" y="606" text-anchor="middle">the image</text>
+<line x1="276" y1="593" x2="286" y2="593" stroke="var(--ink3)" stroke-width="1.3" marker-end="url(#a)"/>
+<line x1="400" y1="593" x2="410" y2="593" stroke="var(--ink3)" stroke-width="1.3" marker-end="url(#a)"/>
+<text class="s" x="538" y="589" fill="var(--amber)">→ deploys both</text>
+<text class="s" x="538" y="602" fill="var(--amber)">task defs on merge</text>
+
+<text class="mono lab" x="664" y="548" fill="var(--cyan)">OBSERVABILITY</text>
+<rect x="664" y="564" width="334" height="58" rx="4" fill="var(--cyanS)" stroke="var(--cyan)"/>
+<text class="t" x="831" y="589" text-anchor="middle">CloudWatch</text>
+<text class="s" x="831" y="606" text-anchor="middle">queue-depth custom metric · logs · dead-letter alarm</text>
+
+<rect x="14" y="650" width="1070" height="66" rx="4" fill="none" stroke="var(--border2)" stroke-dasharray="5 4"/>
+<text class="mono lab" x="30" y="670" fill="var(--ink3)">DELIBERATELY ABSENT</text>
+<text class="xs" x="30" y="688"><tspan fill="var(--ink2)">Rejected by name, with a stated reason —</tspan> Step Functions · SQS as the workflow queue · DynamoDB · Lambda workers · EventBridge Scheduler · EKS (D23) · Multi-AZ · WAF (D25)</text>
+<text class="xs" x="30" y="704"><tspan fill="var(--ink2)">Simply out of scope —</tspan> CloudFront · Cognito · Kafka / MSK · pgmq · ElastiCache/Redis (returns post-MVP as advisory backpressure only)</text>
+</svg>

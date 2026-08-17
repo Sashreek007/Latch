@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 356" width="880" height="356" role="img" aria-label="Deterministic replay versus record and resume. On the left, recovery re-executes the workflow code from the top and substitutes recorded results for prior activities, which requires the code to stay deterministic forever. On the right, recovery folds the event log into state and continues from the checkpoint, so no code is re-entered and mid-run deploys are safe.">
+<style>
+  svg{--bg:#faf8f1;--panel:#f2efe6;--panel2:#efebde;--border:#d9d3c0;--border2:#b3ac93;
+      --ink:#26271f;--ink2:#52534a;--ink3:#84856f;
+      --cyan:#2d5f9a;--cyanS:#e3eaf3;--violet:#86468b;--violetS:#efe3f0;
+      --green:#1d6b50;--greenS:#dfeee4;--red:#b23a2f;--redS:#f4ded9;--amber:#a3641a;}
+  @media (prefers-color-scheme: dark){
+    svg{--bg:#20231a;--panel:#191b13;--panel2:#262a1f;--border:#3b4030;--border2:#575d47;
+        --ink:#eeeadb;--ink2:#b8b5a0;--ink3:#8a8972;
+        --cyan:#85aede;--cyanS:#223145;--violet:#cf97d4;--violetS:#3a2440;
+        --green:#62c093;--greenS:#1d3628;--red:#e58275;--redS:#43221c;--amber:#dda155;}}
+  text{font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;fill:var(--ink)}
+  .mono{font-family:ui-monospace,'SF Mono',Menlo,monospace}
+  .h{font-size:13px;font-weight:700}
+  .sub{font-size:9.8px;fill:var(--ink3)}
+  .m{font-size:10.2px;fill:var(--ink2)}
+  .tag{font-size:9px}
+</style>
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="6.5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="var(--ink3)"/></marker></defs>
+<rect x="0" y="0" width="880" height="356" rx="8" fill="var(--bg)"/>
+
+<text class="mono sub" x="440" y="24" text-anchor="middle">the worker died mid-workflow. how does the replacement catch up?</text>
+
+<!-- LEFT : replay -->
+<rect x="20" y="38" width="410" height="270" rx="6" fill="var(--panel2)" stroke="var(--border2)"/>
+<text class="h" x="40" y="62">Deterministic replay</text>
+<text class="sub" x="40" y="78">Temporal · Cadence · Durable Functions</text>
+
+<text class="mono m" x="40" y="104">run workflow() from line 1 again ↻</text>
+
+<rect x="40" y="116" width="370" height="30" rx="3" fill="var(--panel)" stroke="var(--border)"/>
+<text class="mono m" x="52" y="135">chargeCard()</text>
+<text class="mono tag" x="398" y="135" text-anchor="end" fill="var(--cyan)">↻ result substituted</text>
+
+<rect x="40" y="152" width="370" height="30" rx="3" fill="var(--panel)" stroke="var(--border)"/>
+<text class="mono m" x="52" y="171">sendEmail()</text>
+<text class="mono tag" x="398" y="171" text-anchor="end" fill="var(--cyan)">↻ result substituted</text>
+
+<rect x="40" y="188" width="370" height="30" rx="3" fill="var(--violetS)" stroke="var(--violet)"/>
+<text class="mono m" x="52" y="207">askModel()</text>
+<text class="mono tag" x="398" y="207" text-anchor="end" fill="var(--violet)">↻ result substituted</text>
+
+<rect x="40" y="224" width="370" height="30" rx="3" fill="var(--greenS)" stroke="var(--green)"/>
+<text class="mono m" x="52" y="243">updateTicket()</text>
+<text class="mono tag" x="398" y="243" text-anchor="end" fill="var(--green)">▶ actually runs</text>
+
+<rect x="40" y="266" width="370" height="30" rx="3" fill="var(--redS)" stroke="var(--red)"/>
+<text class="tag" x="225" y="285" text-anchor="middle" fill="var(--red)">the price: your code must stay deterministic forever — and mid-run deploys diverge</text>
+
+<!-- RIGHT : record -->
+<rect x="450" y="38" width="410" height="270" rx="6" fill="var(--panel2)" stroke="var(--border2)"/>
+<text class="h" x="470" y="62">Record &amp; resume</text>
+<text class="sub" x="470" y="78">Latch</text>
+
+<text class="mono m" x="470" y="104">fold the event log → state. continue.</text>
+
+<rect x="470" y="116" width="370" height="66" rx="3" fill="var(--cyanS)" stroke="var(--cyan)"/>
+<text class="mono tag" x="482" y="134" fill="var(--cyan)">e1 · e2 · e3 … e12   workflow_started, phase_entered …</text>
+<text class="mono tag" x="482" y="150" fill="var(--violet)">e13  decision_recorded — model, tokens, $0.004, output</text>
+<text class="mono tag" x="482" y="166" fill="var(--amber)">e14  intent_recorded — refund.issue, key wf·s7</text>
+
+<rect x="470" y="192" width="370" height="30" rx="3" fill="var(--greenS)" stroke="var(--green)"/>
+<text class="mono m" x="482" y="211">▶ continue at step 7</text>
+<text class="mono tag" x="828" y="211" text-anchor="end" fill="var(--green)">no code re-entered</text>
+
+<rect x="470" y="230" width="370" height="24" rx="3" fill="var(--panel)" stroke="var(--border)"/>
+<text class="tag" x="655" y="246" text-anchor="middle" fill="var(--ink2)">the model is never re-asked — the decision is already a fact</text>
+
+<rect x="470" y="266" width="370" height="30" rx="3" fill="var(--greenS)" stroke="var(--green)"/>
+<text class="tag" x="655" y="285" text-anchor="middle" fill="var(--green)">the price: state must be an explicit value, not implicit in code position</text>
+
+<text class="mono sub" x="440" y="332" text-anchor="middle">“Temporal can host an agent; Latch makes the agent the first-class citizen.”</text>
+</svg>

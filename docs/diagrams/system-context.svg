@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 470" width="880" height="470" role="img" aria-label="Latch system context: an app using the SDK calls the API, which writes to Postgres in one transaction. Workers claim from Postgres and call the ModelClient and ToolExecutor ports. The trace and approvals page reads the log via the API. A dashed boundary marks what runs on AWS. The harness drives the same engine against local Postgres.">
+<style>
+  svg{--bg:#faf8f1;--panel:#f2efe6;--panel2:#efebde;--border:#d9d3c0;--border2:#b3ac93;
+      --ink:#26271f;--ink2:#52534a;--ink3:#84856f;
+      --cyan:#2d5f9a;--cyanS:#e3eaf3;--violet:#86468b;--violetS:#efe3f0;
+      --amber:#a3641a;--amberS:#f4e7d0;--green:#1d6b50;--greenS:#dfeee4;--red:#b23a2f;}
+  @media (prefers-color-scheme: dark){
+    svg{--bg:#20231a;--panel:#191b13;--panel2:#262a1f;--border:#3b4030;--border2:#575d47;
+        --ink:#eeeadb;--ink2:#b8b5a0;--ink3:#8a8972;
+        --cyan:#85aede;--cyanS:#223145;--violet:#cf97d4;--violetS:#3a2440;
+        --amber:#dda155;--amberS:#3d2c12;--green:#62c093;--greenS:#1d3628;--red:#e58275;}}
+  text{font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;fill:var(--ink)}
+  .mono{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace}
+  .t{font-size:13.5px;font-weight:650}
+  .s{font-size:10.5px;fill:var(--ink3)}
+  .m{font-size:11px;fill:var(--ink2)}
+  .box{fill:var(--panel2);stroke:var(--border2)}
+  .ar{stroke:var(--ink3);stroke-width:1.4;fill:none}
+</style>
+<defs>
+  <marker id="a" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink3)"/></marker>
+  <marker id="ar" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--red)"/></marker>
+</defs>
+
+<rect x="0" y="0" width="880" height="470" rx="8" fill="var(--bg)"/>
+
+<!-- AWS boundary -->
+<rect x="200" y="16" width="670" height="330" rx="6" fill="none" stroke="var(--amber)" stroke-width="1.3" stroke-dasharray="7 5"/>
+<text class="mono s" x="858" y="337" text-anchor="end" fill="var(--amber)">AWS · ECS Fargate + RDS — same images run locally under Compose</text>
+
+<!-- app + sdk -->
+<rect class="box" x="24" y="48" width="152" height="58" rx="4"/>
+<text class="t" x="100" y="72" text-anchor="middle">Your app</text>
+<text class="s" x="100" y="90" text-anchor="middle">@latch/sdk · define · start</text>
+
+<!-- api -->
+<rect class="box" x="216" y="48" width="140" height="58" rx="4"/>
+<text class="t" x="286" y="72" text-anchor="middle">API</text>
+<text class="s" x="286" y="90" text-anchor="middle">start · status · approve</text>
+
+<!-- postgres -->
+<rect x="396" y="32" width="220" height="138" rx="5" fill="var(--cyanS)" stroke="var(--cyan)" stroke-width="1.8"/>
+<text class="mono" x="506" y="60" text-anchor="middle" font-size="15" font-weight="700">POSTGRES</text>
+<text class="mono" x="506" y="80" text-anchor="middle" font-size="10.5" fill="var(--ink2)">queue · events · leases</text>
+<text class="mono" x="506" y="96" text-anchor="middle" font-size="10.5" fill="var(--ink2)">intents · effects · approvals</text>
+<text class="mono" x="506" y="112" text-anchor="middle" font-size="10.5" fill="var(--ink2)">DLQ · pgvector</text>
+<line x1="418" y1="124" x2="594" y2="124" stroke="var(--cyan)" stroke-dasharray="3 3" opacity=".5"/>
+<text x="506" y="140" text-anchor="middle" font-size="11" font-weight="600">one transaction</text>
+<text class="s" x="506" y="157" text-anchor="middle">the only stateful system</text>
+
+<!-- worker -->
+<rect class="box" x="656" y="48" width="160" height="58" rx="4"/>
+<text class="t" x="736" y="72" text-anchor="middle">Worker pool</text>
+<text class="s" x="736" y="90" text-anchor="middle">claim → step → checkpoint</text>
+
+<!-- ports -->
+<rect x="636" y="210" width="220" height="104" rx="4" fill="var(--panel)" stroke="var(--border2)"/>
+<text class="s mono" x="746" y="230" text-anchor="middle">the two load-bearing ports</text>
+<rect x="648" y="240" width="196" height="30" rx="3" fill="var(--violetS)" stroke="var(--violet)"/>
+<text x="746" y="252" text-anchor="middle" font-size="11" font-weight="650" fill="var(--violet)">ModelClient</text>
+<text class="s" x="746" y="265" text-anchor="middle">OpenAI · Bedrock · fake</text>
+<rect x="648" y="276" width="196" height="30" rx="3" fill="var(--amberS)" stroke="var(--amber)"/>
+<text x="746" y="288" text-anchor="middle" font-size="11" font-weight="650" fill="var(--amber)">ToolExecutor</text>
+<text class="s" x="746" y="301" text-anchor="middle">native · MCP · LangChain</text>
+
+<!-- trace page -->
+<rect x="216" y="210" width="160" height="58" rx="4" fill="var(--greenS)" stroke="var(--green)"/>
+<text class="t" x="296" y="234" text-anchor="middle">Trace + approvals</text>
+<text class="s" x="296" y="252" text-anchor="middle">reads the event log</text>
+
+<!-- human -->
+<rect class="box" x="24" y="210" width="152" height="58" rx="4"/>
+<text class="t" x="100" y="234" text-anchor="middle">Human approver</text>
+<text class="s" x="100" y="252" text-anchor="middle">approve · deny</text>
+
+<!-- harness -->
+<rect x="24" y="372" width="592" height="76" rx="5" fill="var(--panel)" stroke="var(--red)" stroke-dasharray="6 4"/>
+<text class="t" x="320" y="396" text-anchor="middle">Verification harness — same engine, same SQL</text>
+<text class="s" x="320" y="414" text-anchor="middle">logical workers · fake model + embedder · injected clock · seeded faults</text>
+<text class="s" x="320" y="431" text-anchor="middle">local Postgres only — the two-environment rule</text>
+
+<!-- arrows -->
+<line class="ar" x1="176" y1="77" x2="209" y2="77" marker-end="url(#a)"/>
+<line class="ar" x1="356" y1="77" x2="389" y2="77" marker-end="url(#a)"/>
+<line class="ar" x1="616" y1="66" x2="649" y2="66" marker-end="url(#a)"/>
+<line class="ar" x1="649" y1="92" x2="616" y2="92" marker-end="url(#a)"/>
+<line class="ar" x1="746" y1="106" x2="746" y2="205" marker-end="url(#a)"/>
+<line class="ar" x1="296" y1="210" x2="296" y2="111" marker-end="url(#a)"/>
+<line class="ar" x1="176" y1="239" x2="211" y2="239" marker-end="url(#a)"/>
+<line x1="450" y1="372" x2="450" y2="176" stroke="var(--red)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+</svg>
